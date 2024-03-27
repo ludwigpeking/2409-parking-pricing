@@ -100,16 +100,16 @@ function createCustomers() {
   console.log("cars: ", customers.length);
 }
 
-function shuffle(array, inplace = false) {
-  if (!inplace) {
-    array = array.slice();
-  }
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = floor(random(i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
+// function shuffle(array, inplace = false) {
+//   if (!inplace) {
+//     array = array.slice();
+//   }
+//   for (let i = array.length - 1; i > 0; i--) {
+//     const j = floor(random(i + 1));
+//     [array[i], array[j]] = [array[j], array[i]];
+//   }
+//   return array;
+// }
 
 function bidding() {
   //sale give price

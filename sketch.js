@@ -1,80 +1,119 @@
-let img, grid;
-let coreClasses = [];
-let exitClasses = [];
-let coreHouseholdNumbers = [];
-let starts = [];
-let ends = [];
-//TODO
-let controlledLots = [];
-let openLots = [];
-let soldLots = [];
+class Basement {
+  constructor(series) {
+    this.series = series;
+    this.img = null;
+    this.translate = { x: 0, y: 0 };
+    this.grid = [];
+    this.starts = []; // Cores
+    this.coreClasses = [];
+    this.detachedStarts = [];
+    this.coreHouseholdNumbers = [];
+    this.transfers = [];
+    this.ends = []; // Parking lots
+    this.exits = [];
+    this.exitClasses = [];
+    this.controlledLots = [];
+    this.openLots = [];
+    this.soldLots = [];
+    this.clustersBlue = [];
+    this.clustersRed = [];
+    this.clustersYellow = [];
+    this.clustersGreen = [];
+    this.clustersCyan = [];
+  }
+}
+let basement1 = new Basement(1);
+let basement2 = new Basement(2);
 
+//mouse events
 let x1, y1, x2, y2;
 let selection = false;
 let confirmed = false;
+let pixelMultiplier = 3;
+let zoom = 1;
+let offsetX = 0;
+let offsetY = 0;
+let startDragX = 0;
+let startDragY = 0;
+let dragging = false;
 
-let detachedStarts = [];
-let transfers = [];
-let exits = [];
-let pixelMultiplier = 8;
-let redPoints = [];
-let clustersBlue = [];
-let clustersRed = [];
-let clustersYellow = [];
-let clustersGreen = [];
-let clustersCyan = [];
+function setup() {
+  // Create a canvas and attach it to the 'canvasContainer' div
+  let canvas = createCanvas(2000 * pixelMultiplier, 1000 * pixelMultiplier); // Start with a default size
+  canvas.parent("canvasContainer");
+  background(220); // Set a default background
+  cursor("zoom-in");
+  // Set up file input listeners
+  document
+    .getElementById("basement1Input")
+    .addEventListener("change", function (e) {
+      if (e.target.files && e.target.files[0]) {
+        let file = e.target.files[0];
+        loadImage(URL.createObjectURL(file), function (loadedImg) {
+          basement1.img = loadedImg;
+          processImage(basement1, basement1.img);
+        });
+      }
+    });
+  document
+    .getElementById("basement2Input")
+    .addEventListener("change", function (e) {
+      if (e.target.files && e.target.files[0]) {
+        let file = e.target.files[0];
+        loadImage(URL.createObjectURL(file), function (loadedImg) {
+          basement2.img = loadedImg;
+          processImage(basement2, basement2.img);
+        });
+      }
+    });
 
-function preload() {
-  img = loadImage("./image/test.png");
+  // Event listener for the percentageBarInput
+  const percentageBarInput = document.getElementById("percentageBarInput");
+  percentageBarInput.addEventListener("input", function () {
+    percentageBar = this.value;
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const resetButton = document.getElementById("resetButton");
+
+    resetButton.addEventListener("click", function () {
+      resetSalesControl();
+    });
+  });
 }
 
-function loadImageFromInput(event) {
-  let file = event.target.files[0];
-  if (file.type.startsWith("image/")) {
-    let reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = function () {
-      // load the image and wait for it to load before running
-      img = loadImage(reader.result, function () {
-        console.log("image loaded", img);
-        // now that the image is loaded, call run
-        run();
-      });
-    };
+function processImage(basement, img) {
+  console.log("processImage", basement, img);
+  makeGrid(basement, img);
+}
+
+function draw() {
+  // Clear the background every frame
+  clear();
+  background(220);
+
+  // Display the images if they are loaded
+
+  translate(width / 2, height / 2); // Center the zoom effect
+  scale(zoom);
+  translate(-width / 2 + offsetX, -height / 2 + offsetY);
+
+  if (basement1.img) {
+    image(basement1.img, 0, 0);
+  }
+  if (basement2.img) {
+    // Adjust the position of the second image
+    let offsetX = basement1.img ? basement1.img.width : 0;
+    image(basement2.img, offsetX, 0);
   }
 }
 
-function setup() {
-  run();
+function handleFileInput(event, callback) {
+  if (event.target.files && event.target.files[0]) {
+    let file = event.target.files[0];
+    loadImage(URL.createObjectURL(file), callback);
+  }
 }
-
-// function draw(){
-//     if (selection) {
-//         // image(img, 0, 0, width, height);
-//         // fill(255, 0, 0, 50);
-//         // noStroke();
-//         // rectMode(CORNERS);
-//         // rect(x1, y1, x2, y2);
-//     } else if (confirmed) {
-//         // image(img, 0, 0, width, height);
-//         // fill(255, 0, 0, 50);
-//         // noStroke();
-//         // rectMode(CORNERS);
-//         // rect(x1, y1, x2, y2);
-//         for (let i = 0; i < ends.length; i++) {
-//             const end = ends[i];
-//             if (end.controlled) {
-//                 fill(150);
-//                 noStroke();
-//                 rectMode(CENTER);
-//                 rect(ends[i].x * pixelMultiplier, ends[i].y * pixelMultiplier,  ends[i].horizontal * 2.5 * pixelMultiplier + 2.5 * pixelMultiplier, - ends[i].horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier);
-//             }
-//         }
-//     } // else {
-//     //     image(img, 0, 0, width, height);
-//     //     image(textLayer, 0, 0, width, height);
-//     // }
-// }
 
 function run() {
   cleanDOM(); //destroy the inputs and select doms in the html, but keep the fileInput dom
@@ -97,47 +136,33 @@ function run() {
   clustersGreen = []; //transfer elevators
   clustersCyan = []; //exits
 
-  //find all clusters of blue points, red points, yellow points, green points, cyan points
+  // Define point types and corresponding actions in a configuration object
+  const pointTypes = [
+    { color: "bluePoint", clusterArray: clustersBlue },
+    { color: "redPoint", clusterArray: clustersRed },
+    { color: "yellowPoint", clusterArray: clustersYellow },
+    { color: "greenPoint", clusterArray: clustersGreen },
+    { color: "cyanPoint", clusterArray: clustersCyan },
+  ];
+
+  // Process each tile once, checking against all point types
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
       const tile = grid[i][j];
-      if (tile.bluePoint) {
-        tile.walkable = true;
-        tile.bluePoint = false;
-        const cluster = [tile];
-        findCluster(grid, tile, cluster, "bluePoint");
-        clustersBlue.push(cluster);
-      }
-      if (tile.redPoint) {
-        tile.walkable = true;
-        tile.redPoint = false;
-        const cluster = [tile];
-        findCluster(grid, tile, cluster, "redPoint");
-        clustersRed.push(cluster);
-      }
-      if (tile.yellowPoint) {
-        tile.walkable = true;
-        tile.yellowPoint = false;
-        const cluster = [tile];
-        findCluster(grid, tile, cluster, "yellowPoint");
-        clustersYellow.push(cluster);
-      }
-      if (tile.greenPoint) {
-        tile.walkable = true;
-        tile.greenPoint = false;
-        const cluster = [tile];
-        findCluster(grid, tile, cluster, "greenPoint");
-        clustersGreen.push(cluster);
-      }
-      if (tile.cyanPoint) {
-        tile.walkable = true;
-        tile.cyanPoint = false;
-        const cluster = [tile];
-        findCluster(grid, tile, cluster, "cyanPoint");
-        clustersCyan.push(cluster);
-      }
+
+      // Check the tile against each point type
+      pointTypes.forEach((type) => {
+        if (tile[type.color]) {
+          tile.walkable = true;
+          tile[type.color] = false; // Disable the flag to avoid reprocessing
+          const cluster = [tile];
+          findCluster(grid, tile, cluster, type.color);
+          type.clusterArray.push(cluster);
+        }
+      });
     }
   }
+
   //show the number of each cluster
 
   console.log("Parking Lot Nr: ", clustersBlue.length);
@@ -162,38 +187,15 @@ function run() {
   }
   //duplicate ends to openLots array
   openLots = ends.slice();
-  //find the clusterCenter of each cluster of red points and make it a start point
-  for (let i = 0; i < clustersRed.length; i++) {
-    const cluster = clustersRed[i];
-    const clusterCenter = findClusterCenter(cluster);
-    const startPoint = grid[clusterCenter.x][clusterCenter.y];
-    startPoint.start = true;
-    starts.push(startPoint);
-  }
-  //find the clusterCenter of each cluster of yellow points and make it a detached start point
-  for (let i = 0; i < clustersYellow.length; i++) {
-    const cluster = clustersYellow[i];
-    const clusterCenter = findClusterCenter(cluster);
-    const detachedStartPoint = grid[clusterCenter.x][clusterCenter.y];
-    detachedStartPoint.detachedStart = true;
-    detachedStarts.push(detachedStartPoint);
-  }
-  //find the clusterCenter of each cluster of green points and make it a transfer point
-  for (let i = 0; i < clustersGreen.length; i++) {
-    const cluster = clustersGreen[i];
-    const clusterCenter = findClusterCenter(cluster);
-    const transferPoint = grid[clusterCenter.x][clusterCenter.y];
-    transferPoint.transfer = true;
-    transfers.push(transferPoint);
-  }
-  //find the clusterCenter of each cluster of cyan points and make it a exit point
-  for (let i = 0; i < clustersCyan.length; i++) {
-    const cluster = clustersCyan[i];
-    const clusterCenter = findClusterCenter(cluster);
-    const exitPoint = grid[clusterCenter.x][clusterCenter.y];
-    exitPoint.exit = true;
-    exits.push(exitPoint);
-  }
+
+  processClusters(clustersRed, starts, (point) => (point.start = true));
+  processClusters(
+    clustersYellow,
+    detachedStarts,
+    (point) => (point.detachedStart = true)
+  );
+  processClusters(clustersGreen, transfers, (point) => (point.transfer = true));
+  processClusters(clustersCyan, exits, (point) => (point.exit = true));
 
   for (let i = 0; i < starts.length; i++) {
     const start = starts[i];
@@ -332,18 +334,7 @@ function run() {
       //put text of the selection on the canvas near start point
     }
   }
-  //add an input to change the percentageBar
-  let percentageBarInput = createInput("出售比例要求");
-  percentageBarInput.position(width - 100, 50);
-  percentageBarInput.size(100);
-  percentageBarInput.style("font-size", "10px");
-  percentageBarInput.style("color", "black");
-  percentageBarInput.style("background-color", "#ee6666");
 
-  percentageBarInput.input(changePercentageBar);
-  function changePercentageBar() {
-    percentageBar = percentageBarInput.value();
-  }
   //add number input doms to the start points in the canvas
   for (let i = 0; i < starts.length; i++) {
     const start = starts[i];
@@ -365,50 +356,40 @@ function run() {
     }
   }
 
-  const p = createP(
-    "使用说明：<br>1）按照要求处理好图片：用蓝色标记车位，红色标记核心筒，黑色代表墙壁，把图片尺寸调整到每个像素代表现实中0.5米。<br>  请注意图片处理的精度会影响计算结果。本版是试用版。<br>2) 请选择处理好的图片，代替上面的示例图片。<br>3) 选择核心筒的内产品的类型，“首改”大致代表120㎡左右的户型，对应的客户家庭月收入在2万元左右。<br>4) 输入核心筒内户数，比如54。<br>5) 点击“开始模拟”按钮，即可开始模拟。"
-  );
-  p.style("font-size", "10px");
-  p.position(img.width + 10, 120);
+  // const salesControlButton = createButton("请选择销控车位 sales control, ");
+  // salesControlButton.position(img.width + 10, 10);
+  // salesControlButton.mousePressed(salesControl);
 
-  //create a button to start the buying simulation
-  const button = createButton("开始模拟 start buying simulation");
-  button.position(img.width + 10, 100).style("background-color", "pink");
-  button.mousePressed(startBuyingSimulation);
-
-  const salesControlButton = createButton("请选择销控车位 sales control, ");
-  salesControlButton.position(img.width + 10, 10);
-  salesControlButton.mousePressed(salesControl);
-
-  //add a button to confirm the selection
-  const confirmButton = createButton("确认销控范围 confirm");
-  confirmButton.position(img.width + 10, 40);
-  confirmButton.mousePressed(confirmControlledLots);
-
-  const resetButton = createButton("重置 reset");
-  resetButton.position(img.width + 10, 70).style("background-color", "grey");
-  resetButton.mousePressed(resetSalesControl);
+  // //add a button to confirm the selection
+  // const confirmButton = createButton("确认销控范围 confirm");
+  // confirmButton.position(img.width + 10, 40);
+  // confirmButton.mousePressed(confirmControlledLots);
 }
 
-function makeGrid() {
-  console.log("makeGrid");
-  const grid = [];
-  for (let i = 0; i < width; i++) {
-    grid[i] = [];
-    for (let j = 0; j < height; j++) {
+function makeGrid(basement, img) {
+  console.log("makeGrid", basement, img);
+  basement.grid = [];
+  for (let i = 0; i < img.width; i++) {
+    basement.grid[i] = [];
+    for (let j = 0; j < img.height; j++) {
       let c = img.get(i, j); // Get color of each pixel
 
       // Determine cell properties based on color
       const cellProps = determineCellProps(c);
 
       // Create grid cell with determined properties
-      grid[i].push({
+      basement.grid[i].push({
         x: i,
         y: j,
         ...cellProps,
         dists: [], // Assuming dists is always an empty array initially
       });
 
+      push();
+      translate(
+        basement.translate.x * pixelMultiplier,
+        basement.translate.y * pixelMultiplier
+      );
       // Draw the cell
       fill(cellProps.color);
       rect(
@@ -418,16 +399,11 @@ function makeGrid() {
         pixelMultiplier
       );
 
-      // Additional logic based on cell type (if needed)
-      if (cellProps.redPoint) {
-        redPoints.push(grid[i][j]);
-      }
+      pop();
     }
   }
-
   // Store the current canvas
-  img = get(0, 0, width, height);
-  return grid;
+  basement.img = get(0, 0, width, height);
 }
 
 function determineCellProps(color) {
@@ -580,26 +556,56 @@ function confirmSelection() {
   }
 }
 
+// function mousePressed() {
+//   if (selection) {
+//     x1 = mouseX;
+//     y1 = mouseY;
+//   }
+// }
+
+// function mouseDragged() {
+//   if (selection) {
+//     x2 = mouseX;
+//     y2 = mouseY;
+//   }
+// }
+
+// function mouseReleased() {
+//   if (selection) {
+//     x2 = mouseX;
+//     y2 = mouseY;
+//     pushControlledLots();
+//   }
+// }
+
+function mouseWheel(event) {
+  // Zoom in or out
+  let zoomIntensity = 2;
+  zoom += event.delta * -0.001 * zoomIntensity;
+  zoom = constrain(zoom, 0.5, 5); // Limit zoom to prevent inversion or excessive zoom
+  return false; // Prevent default behavior
+}
+
 function mousePressed() {
-  if (selection) {
-    x1 = mouseX;
-    y1 = mouseY;
-  }
+  // Start dragging
+  startDragX = mouseX - offsetX;
+  startDragY = mouseY - offsetY;
+  dragging = true;
+  cursor(MOVE);
 }
 
 function mouseDragged() {
-  if (selection) {
-    x2 = mouseX;
-    y2 = mouseY;
+  if (dragging) {
+    // Update offset based on drag
+    offsetX = mouseX - startDragX;
+    offsetY = mouseY - startDragY;
   }
 }
 
 function mouseReleased() {
-  if (selection) {
-    x2 = mouseX;
-    y2 = mouseY;
-    pushControlledLots();
-  }
+  // Stop dragging
+  dragging = false;
+  cursor("zoom-in");
 }
 
 function confirmControlledLots() {
@@ -659,3 +665,13 @@ function resetSalesControl() {
 }
 
 function openControlledLots() {}
+
+function processClusters(clusters, targetArray, propertySetter) {
+  for (let i = 0; i < clusters.length; i++) {
+    const cluster = clusters[i];
+    const clusterCenter = findClusterCenter(cluster);
+    const point = grid[clusterCenter.x][clusterCenter.y];
+    propertySetter(point); // Apply the passed function to set additional properties
+    targetArray.push(point);
+  }
+}

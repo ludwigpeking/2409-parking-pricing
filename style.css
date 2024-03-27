@@ -6,3 +6,21 @@ html, body {
 canvas {
   display: block;
 }
+
+.container {
+  display: flex;
+  align-items: flex-start;
+  /* justify-content: space-around;  */
+  margin-left: 0;
+  
+}
+
+.basement-input {
+  margin-right: 20px; /* Space between the input elements horizontally */
+  margin-bottom: 10px; /* Space between the input elements vertically */
+}
+
+p {
+  margin-block: 0;
+  margin-right: 10px
+}

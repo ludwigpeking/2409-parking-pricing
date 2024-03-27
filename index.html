@@ -1,25 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <meta charset="UTF-8">
-  <title> 车位定价模拟器 Parking Lot Pricing Simulation </title>
-  <!-- <style>
+  <head>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <meta charset="UTF-8" />
+    <title>车位定价模拟器 Parking Lot Pricing Simulation</title>
+    <!-- <style>
     canvas {
       border: 1px solid black;
     }
   </style> -->
-  <h3> 车位定价模拟器 Parking Lot Pricing Simulation </h3>
-</head>
+    <h3>车位定价模拟器 Parking Lot Pricing Simulation</h3>
+  </head>
 
-<input type="file" id="fileInput" onchange="loadImageFromInput(event)"> </input>
-<body>
-  <script src="p5.js"></script>
-  <script src="utils.js"></script>
-  <script src="classes.js"></script>
-  <script src="sketch.js"></script>
-  <!-- <script src="pathfinding.js"></script> -->
-</body>
+  <body>
+    <!-- <input type="file" id="fileInput" onchange="loadImageFromInput(event)"> </input> -->
+    <div class="container">
+      <button
+        onclick="startBuyingSimulation()"
+        style="
+          background-color: aqua;
+          margin-right: 10px;
+          height: 100px;
+          width: 100px;
+        "
+      >
+        开始模拟<br />
+        start buying simulation
+      </button>
+      <div style="width: 500px; font-size: 12px">
+        <p>
+          使用说明：<br />1）按照要求处理好图片：用蓝色标记车位，红色标记核心筒，黑色代表墙壁，把图片尺寸调整到每个像素代表现实中0.5米。<br />
+          请注意图片处理的精度会影响计算结果。本版是试用版。<br />2)
+          请选择处理好的图片，代替上面的示例图片。<br />3)
+          选择核心筒的内产品的类型，“首改”大致代表120㎡左右的户型，对应的客户家庭月收入在2万元左右。<br />4)
+          输入核心筒内户数，比如54。<br />5) 点击“开始模拟”按钮，即可开始模拟。
+        </p>
+      </div>
 
+      <div class="basement-input">
+        <p>地下一层平面：</p>
+        <input type="file" id="basement1Input" accept="image/*" />
+
+        <p>地下二层平面：</p>
+        <input type="file" id="basement2Input" accept="image/*" /><br />
+        <p>出售比例要求:</p>
+        <input
+          type="text"
+          id="percentageBarInput"
+          placeholder="出售比例要求:0~1"
+          value=""
+        />
+      </div>
+      <div>
+        <button id="resetButton">重置 reset</button>
+      </div>
+    </div>
+
+    <div id="canvasContainer"></div>
+
+    <script src="p5.js"></script>
+    <script src="utils.js"></script>
+    <script src="classes.js"></script>
+    <script src="sketch.js"></script>
+    <!-- <script src="pathfinding.js"></script> -->
+  </body>
 </html>
