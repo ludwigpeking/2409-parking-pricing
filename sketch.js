@@ -1,6 +1,7 @@
 class Basement {
-  constructor(series) {
-    this.series = series;
+  constructor(floor) {
+    this.floor = floor;
+    this.inputImage = null;
     this.img = null;
     this.translate = { x: 0, y: 0 };
     this.grid = [];
@@ -25,11 +26,12 @@ class Basement {
 let basement1 = new Basement(1);
 let basement2 = new Basement(2);
 
+//gl
+let pixelMultiplier = 5;
 //mouse events
 let x1, y1, x2, y2;
 let selection = false;
 let confirmed = false;
-let pixelMultiplier = 3;
 let zoom = 1;
 let offsetX = 0;
 let offsetY = 0;
@@ -50,8 +52,8 @@ function setup() {
       if (e.target.files && e.target.files[0]) {
         let file = e.target.files[0];
         loadImage(URL.createObjectURL(file), function (loadedImg) {
-          basement1.img = loadedImg;
-          processImage(basement1, basement1.img);
+          basement1.inputImage = loadedImg;
+          processImage(basement1, basement1.inputImage);
         });
       }
     });
@@ -61,8 +63,8 @@ function setup() {
       if (e.target.files && e.target.files[0]) {
         let file = e.target.files[0];
         loadImage(URL.createObjectURL(file), function (loadedImg) {
-          basement2.img = loadedImg;
-          processImage(basement2, basement2.img);
+          basement2.inputImage = loadedImg;
+          processImage(basement2, basement2.inputImage);
         });
       }
     });
@@ -82,11 +84,6 @@ function setup() {
   });
 }
 
-function processImage(basement, img) {
-  console.log("processImage", basement, img);
-  makeGrid(basement, img);
-}
-
 function draw() {
   // Clear the background every frame
   clear();
@@ -103,52 +100,89 @@ function draw() {
   }
   if (basement2.img) {
     // Adjust the position of the second image
-    let offsetX = basement1.img ? basement1.img.width : 0;
-    image(basement2.img, offsetX, 0);
+    basement2.translate.x = basement1.inputImage
+      ? basement1.inputImage.width
+      : 0;
+    image(basement2.img, basement2.translate.x * pixelMultiplier, 0);
   }
+  // for (let basement of [basement1, basement2]) {
+  //   basement.starts.forEach((start, index) => {
+  //     const selectElement = document.getElementById(
+  //       `selectIdForBasement${basement.floor}Start${index}`
+  //     );
+  //     if (selectElement) {
+  //       updateDOMPosition(
+  //         selectElement,
+  //         (start.x + basement.translate.x) * pixelMultiplier,
+  //         start.y * pixelMultiplier
+  //       );
+  //     }
+  //     const inputElement = document.getElementById(
+  //       `inputIdForBasement${basement.floor}Start${index}`
+  //     );
+  //     if (inputElement) {
+  //       updateDOMPosition(
+  //         inputElement,
+  //         (start.x + basement.translate.x) * pixelMultiplier,
+  //         start.y * pixelMultiplier
+  //       );
+  //     }
+  //   });
+  //   basement.exits.forEach((exit, index) => {
+  //     const selectElement = document.getElementById(
+  //       `selectIdForBasement${basement.floor}Exit${index}`
+  //     );
+  //     if (selectElement) {
+  //       updateDOMPosition(
+  //         selectElement,
+  //         (exit.x + basement.translate.x) * pixelMultiplier,
+  //         exit.y * pixelMultiplier
+  //       );
+  //     }
+  //   });
+  // }
+  // updateDOMPositionsForBasement(basement1);
+  // updateDOMPositionsForBasement(basement2);
 }
 
-function handleFileInput(event, callback) {
-  if (event.target.files && event.target.files[0]) {
-    let file = event.target.files[0];
-    loadImage(URL.createObjectURL(file), callback);
+function processImage(basement, inputImage) {
+  console.log("processImage", basement.floor, inputImage);
+  basement.grid = makeGrid(basement, inputImage);
+  if (basement.floor === 2) {
+    basement.translate.x = basement1.inputImage.width;
+    console.log("translate x", basement.translate.x);
   }
-}
 
-function run() {
-  cleanDOM(); //destroy the inputs and select doms in the html, but keep the fileInput dom
-  createCanvas(img.width * pixelMultiplier, img.height * pixelMultiplier);
-  textLayer = createGraphics(
-    img.width * pixelMultiplier,
-    img.height * pixelMultiplier
-  );
-
-  background(200);
-  noStroke();
-
-  console.log("sizes:", width, "px *", height, "px"); //show the sizes of the image
-  //makeGrid() returns a 2d array of tile objects, black tiles are walls, white tiles are walkable, red tiles are start point, blue tiles are end points yellow tiles are detached start points, green tiles are transfer points, cyan tiles are exit points of the complex
-  grid = makeGrid(); //color detection
-
-  clustersBlue = []; //parking lots
-  clustersRed = []; //elevators in basement
-  clustersYellow = []; //detached elevators
-  clustersGreen = []; //transfer elevators
-  clustersCyan = []; //exits
-
-  // Define point types and corresponding actions in a configuration object
   const pointTypes = [
-    { color: "bluePoint", clusterArray: clustersBlue },
-    { color: "redPoint", clusterArray: clustersRed },
-    { color: "yellowPoint", clusterArray: clustersYellow },
-    { color: "greenPoint", clusterArray: clustersGreen },
-    { color: "cyanPoint", clusterArray: clustersCyan },
+    {
+      color: "bluePoint",
+      clusterArray: basement.clustersBlue,
+      propertySetter: (point) => (point.parking = true),
+    },
+    {
+      color: "redPoint",
+      clusterArray: basement.clustersRed,
+      propertySetter: (point) => (point.core = true),
+    },
+    {
+      color: "yellowPoint",
+      clusterArray: basement.clustersYellow,
+      propertySetter: (point) => (point.detachedCore = true),
+    },
+    {
+      color: "greenPoint",
+      clusterArray: basement.clustersGreen,
+      propertySetter: (point) => (point.transfer = true),
+    },
+    {
+      color: "cyanPoint",
+      clusterArray: basement.clustersCyan,
+      propertySetter: (point) => (point.exit = true),
+    },
   ];
-
-  // Process each tile once, checking against all point types
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      const tile = grid[i][j];
+  for (let i = 0; i < basement.grid.length; i++) {
+    for (let j = 0; j < basement.grid[i].length; j++) {
+      const tile = basement.grid[i][j];
 
       // Check the tile against each point type
       pointTypes.forEach((type) => {
@@ -156,84 +190,97 @@ function run() {
           tile.walkable = true;
           tile[type.color] = false; // Disable the flag to avoid reprocessing
           const cluster = [tile];
-          findCluster(grid, tile, cluster, type.color);
+          findCluster(basement.grid, tile, cluster, type.color);
           type.clusterArray.push(cluster);
+          type.propertySetter(tile); // Set additional properties based on cluster type
         }
       });
     }
   }
+  console.log("Parking Lot Nr: ", basement.clustersBlue.length);
+  console.log("Elevator Nr: ", basement.clustersRed.length);
+  console.log("Detached Elevator Nr: ", basement.clustersYellow.length);
+  console.log("Transfer Elevator Nr: ", basement.clustersGreen.length);
+  console.log("Exits Nr: ", basement.clustersCyan.length);
 
-  //show the number of each cluster
-
-  console.log("Parking Lot Nr: ", clustersBlue.length);
-  console.log("Elevator Nr: ", clustersRed.length);
-  console.log("Detached Elevator Nr: ", clustersYellow.length);
-  console.log("Transfer Elevator Nr: ", clustersGreen.length);
-  console.log("Exits Nr: ", clustersCyan.length);
-  //define objects
-  ends = [];
-  starts = [];
-  detachedStarts = [];
-  transfers = [];
-  exits = [];
-  //find the clusterCenter of each cluster of blue points and make it a end point
-  for (let i = 0; i < clustersBlue.length; i++) {
-    const cluster = clustersBlue[i];
+  basement.ends = [];
+  basement.starts = [];
+  basement.detachedStarts = [];
+  basement.transfers = [];
+  basement.exits = [];
+  for (let i = 0; i < basement.clustersBlue.length; i++) {
+    const cluster = basement.clustersBlue[i];
     const clusterCenter = findClusterCenter(cluster);
-    const endPoint = grid[clusterCenter.x][clusterCenter.y];
+    const endPoint = basement.grid[clusterCenter.x][clusterCenter.y];
     endPoint.end = true;
-    ends.push(endPoint);
+    basement.ends.push(endPoint);
     endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot diretion
   }
-  //duplicate ends to openLots array
-  openLots = ends.slice();
+  basement.openLots = basement.ends.slice();
 
-  processClusters(clustersRed, starts, (point) => (point.start = true));
   processClusters(
-    clustersYellow,
-    detachedStarts,
+    basement,
+    basement.clustersRed,
+    basement.starts,
+    (point) => (point.start = true)
+  );
+  processClusters(
+    basement,
+
+    basement.clustersYellow,
+    basement.detachedStarts,
     (point) => (point.detachedStart = true)
   );
-  processClusters(clustersGreen, transfers, (point) => (point.transfer = true));
-  processClusters(clustersCyan, exits, (point) => (point.exit = true));
+  processClusters(
+    basement,
 
-  for (let i = 0; i < starts.length; i++) {
-    const start = starts[i];
-    for (let j = 0; j < ends.length; j++) {
-      const end = ends[j];
-      // const path = findPathJPS(grid, start, end);
-      const dist = simpleManhattanDistance(start, end);
+    basement.clustersGreen,
+    basement.transfers,
+    (point) => (point.transfer = true)
+  );
+  processClusters(
+    basement,
+    basement.clustersCyan,
+    basement.exits,
+    (point) => (point.exit = true)
+  );
+
+  for (let i = 0; i < basement.starts.length; i++) {
+    const start = basement.starts[i];
+    for (let j = 0; j < basement.ends.length; j++) {
+      const end = basement.ends[j];
+      const dist = simpleManhattanDistance(start, end); // Manhattan distance, Pathfinding not implemented
       start.dists.push(dist);
     }
   }
   //find the manhattan dists from each detached starts to transfer points
-  for (let i = 0; i < detachedStarts.length; i++) {
-    detachedStarts[i].distsToTransfer = [];
-    const detachedStart = detachedStarts[i];
-    for (let j = 0; j < transfers.length; j++) {
-      const transfer = transfers[j];
+  for (let i = 0; i < basement.detachedStarts.length; i++) {
+    basement.detachedStarts[i].distsToTransfer = [];
+    const detachedStart = basement.detachedStarts[i];
+    for (let j = 0; j < basement.transfers.length; j++) {
+      const transfer = basement.transfers[j];
       const distToTransfer = simpleManhattanDistance(detachedStart, transfer);
       detachedStart.distsToTransfer.push(distToTransfer);
     }
   }
   //find the manhattan dists from each transfer points to ends
-  for (let i = 0; i < transfers.length; i++) {
-    const transfer = transfers[i];
-    for (let j = 0; j < ends.length; j++) {
-      const end = ends[j];
+  for (let i = 0; i < basement.transfers.length; i++) {
+    const transfer = basement.transfers[i];
+    for (let j = 0; j < basement.ends.length; j++) {
+      const end = basement.ends[j];
       const dist = simpleManhattanDistance(transfer, end);
       transfer.dists.push(dist);
     }
   }
   //detached starts' dists to ends is the minimum of dists to transfer points + dists from transfer points to ends, find the minimum and push it to the dists
-  for (let i = 0; i < detachedStarts.length; i++) {
-    const detachedStart = detachedStarts[i];
+  for (let i = 0; i < basement.detachedStarts.length; i++) {
+    const detachedStart = basement.detachedStarts[i];
     detachedStart.dists = [];
-    for (let j = 0; j < ends.length; j++) {
-      const end = ends[j];
+    for (let j = 0; j < basement.ends.length; j++) {
+      const end = basement.ends[j];
       let minDist = 100000;
-      for (let k = 0; k < transfers.length; k++) {
-        const transfer = transfers[k];
+      for (let k = 0; k < basement.transfers.length; k++) {
+        const transfer = basement.transfers[k];
         const dist = detachedStart.distsToTransfer[k] + transfer.dists[j];
         if (dist < minDist) {
           minDist = dist;
@@ -242,36 +289,33 @@ function run() {
       detachedStart.dists.push(minDist);
     }
   }
-
   //put all detached starts into the starts array, so all starts are in the same array
-  for (let i = 0; i < detachedStarts.length; i++) {
-    const detachedStart = detachedStarts[i];
-    starts.push(detachedStart);
+  for (let i = 0; i < basement.detachedStarts.length; i++) {
+    const detachedStart = basement.detachedStarts[i];
+    basement.starts.push(detachedStart);
   }
-
   //calculate all manhattan dists from all starts to all exits, and push them to a new distsToExits array
-  for (let i = 0; i < starts.length; i++) {
-    const start = starts[i];
+  for (let i = 0; i < basement.starts.length; i++) {
+    const start = basement.starts[i];
     start.distsToExits = [];
-    for (let j = 0; j < exits.length; j++) {
-      const exit = exits[j];
+    for (let j = 0; j < basement.exits.length; j++) {
+      const exit = basement.exits[j];
       const dist = simpleManhattanDistance(start, exit);
       start.distsToExits.push(dist);
     }
   }
 
-  listOfExits = [
-    "易得 easy", // 5 mins
-    "中等 moderate", // 10 mins
-    "困难 difficult", // 15 mins
-  ];
   //add selection doms to the exit points in the canvas
-  for (let i = 0; i < exits.length; i++) {
-    const exit = exits[i];
+  for (let i = 0; i < basement.exits.length; i++) {
+    const exit = basement.exits[i];
     exit.metersLoss = 800;
-    exitClasses[i] = 1; //default is moderate
+    basement.exitClasses[i] = 1; //default is moderate
     const select = createSelect();
-    select.position(exit.x * pixelMultiplier, exit.y * pixelMultiplier + 60);
+    select.id(`selectIdForBasement${basement.floor}Exit${i}`);
+
+    const xTranslate = (exit.x + basement.translate.x) * pixelMultiplier;
+    console.log("xTranslate", xTranslate);
+    select.position(xTranslate, exit.y * pixelMultiplier + 60);
     select.option("易得 easy");
     select.option("中等 moderate");
     select.option("困难 difficult");
@@ -288,26 +332,30 @@ function run() {
     // define the core class based on the selection
 
     function mySelectEvent() {
-      exitClasses[i] = listOfExits.indexOf(select.value());
+      basement.exitClasses[i] = listOfExits.indexOf(select.value());
       exit.metersLoss = 80 * 5 * (1 + exitClasses[i]);
       //put text of the selection on the canvas near the exit point
     }
   }
 
-  listOfCustomers = [
+  //add selection doms to the start points in the canvas
+  basement.coreClasses = [];
+  const listOfCustomers = [
     "刚需 surviving",
     "首置 modest",
     "首改 comfortable",
     "再改 affluent",
     "高改 wealthy",
   ];
-  //add selection doms to the start points in the canvas
-  coreClasses = [];
-
-  for (let i = 0; i < starts.length; i++) {
-    const start = starts[i];
+  for (let i = 0; i < basement.starts.length; i++) {
+    const start = basement.starts[i];
     const select = createSelect();
-    select.position(start.x * pixelMultiplier, start.y * pixelMultiplier + 60);
+    select.id(`selectIdForBasement${basement.floor}Start${i}`);
+    console.log("start translate", start.x + basement.translate.x);
+    select.position(
+      (start.x + basement.translate.x) * pixelMultiplier,
+      start.y * pixelMultiplier + 60
+    );
     select.option("刚需 surviving");
     select.option("首置 modest");
     select.option("首改 comfortable");
@@ -319,7 +367,7 @@ function run() {
     select.style("outline", "none");
     select.style("color", "#cccccc");
     select.value("首改 comfortable"); //default is modest
-    coreClasses[i] = 2; //this index follows the default value
+    basement.coreClasses[i] = 2; //this index follows the default value
     select.changed(mySelectEvent);
 
     //make the dom very small
@@ -330,17 +378,18 @@ function run() {
     // define the core class based on the selection
 
     function mySelectEvent() {
-      coreClasses[i] = listOfCustomers.indexOf(select.value());
+      basement.coreClasses[i] = listOfCustomers.indexOf(select.value());
       //put text of the selection on the canvas near start point
     }
   }
 
   //add number input doms to the start points in the canvas
-  for (let i = 0; i < starts.length; i++) {
-    const start = starts[i];
+  for (let i = 0; i < basement.starts.length; i++) {
+    const start = basement.starts[i];
     const input = createInput();
+    input.id(`inputIdForBasement${basement.floor}Start${i}`);
     input.position(
-      start.x * pixelMultiplier - 10,
+      (start.x + basement.translate.x) * pixelMultiplier - 10,
       start.y * pixelMultiplier + 75
     );
     input.size(15, 10);
@@ -349,35 +398,41 @@ function run() {
     input.style("background-color", "#ee6666");
     input.value(36);
     //add shadow to input cell not text
-    coreHouseholdNumbers[i] = 36; //customized for Tsingtao
+    basement.coreHouseholdNumbers[i] = 36; //customized for Tsingtao
     input.input(myInputEvent);
     function myInputEvent() {
-      coreHouseholdNumbers[i] = input.value();
+      basement.coreHouseholdNumbers[i] = input.value();
     }
   }
-
-  // const salesControlButton = createButton("请选择销控车位 sales control, ");
-  // salesControlButton.position(img.width + 10, 10);
-  // salesControlButton.mousePressed(salesControl);
-
-  // //add a button to confirm the selection
-  // const confirmButton = createButton("确认销控范围 confirm");
-  // confirmButton.position(img.width + 10, 40);
-  // confirmButton.mousePressed(confirmControlledLots);
 }
 
-function makeGrid(basement, img) {
-  console.log("makeGrid", basement, img);
-  basement.grid = [];
-  for (let i = 0; i < img.width; i++) {
-    basement.grid[i] = [];
-    for (let j = 0; j < img.height; j++) {
-      let c = img.get(i, j); // Get color of each pixel
+//make a start array to accommodate the starts from both basements without duplication, check their coordinates and make them the same if they are the very close (less than 2 pixels)
+function checkSameStarts() {}
 
-      // Determine cell properties based on color
+function handleFileInput(event, callback) {
+  if (event.target.files && event.target.files[0]) {
+    let file = event.target.files[0];
+    loadImage(URL.createObjectURL(file), callback);
+  }
+}
+
+function makeGrid(basement, inputImage) {
+  console.log("makeGrid", basement, inputImage, inputImage.width);
+
+  // Create an off-screen graphics buffer
+  let offscreen = createGraphics(
+    inputImage.width * pixelMultiplier,
+    inputImage.height * pixelMultiplier
+  );
+
+  basement.grid = [];
+  for (let i = 0; i < inputImage.width; i++) {
+    basement.grid[i] = [];
+    for (let j = 0; j < inputImage.height; j++) {
+      let c = inputImage.get(i, j); // Get color of each pixel
+
       const cellProps = determineCellProps(c);
 
-      // Create grid cell with determined properties
       basement.grid[i].push({
         x: i,
         y: j,
@@ -385,25 +440,19 @@ function makeGrid(basement, img) {
         dists: [], // Assuming dists is always an empty array initially
       });
 
-      push();
-      translate(
-        basement.translate.x * pixelMultiplier,
-        basement.translate.y * pixelMultiplier
-      );
-      // Draw the cell
-      fill(cellProps.color);
-      rect(
+      offscreen.noStroke();
+      offscreen.fill(cellProps.color);
+      offscreen.rect(
         i * pixelMultiplier,
         j * pixelMultiplier,
         pixelMultiplier,
         pixelMultiplier
       );
-
-      pop();
     }
   }
-  // Store the current canvas
-  basement.img = get(0, 0, width, height);
+
+  basement.img = offscreen;
+  return basement.grid;
 }
 
 function determineCellProps(color) {
@@ -482,63 +531,6 @@ function findClusterSize(cluster) {
     return { xSize, ySize, horizontal: true };
   } else {
     return { xSize: ySize, ySize: xSize, horizontal: false };
-  }
-}
-
-function findClusterCenter(cluster) {
-  let xSum = 0;
-  let ySum = 0;
-  for (let i = 0; i < cluster.length; i++) {
-    const tile = cluster[i];
-    xSum += tile.x;
-    ySum += tile.y;
-  }
-  const x = Math.round(xSum / cluster.length);
-  const y = Math.round(ySum / cluster.length);
-  return { x: x, y: y };
-}
-
-function getNeighbors(grid, tile) {
-  const neighbors = [];
-  const x = tile.x;
-  const y = tile.y;
-  if (x > 0) {
-    neighbors.push(grid[x - 1][y]);
-  }
-  if (x < grid.length - 1) {
-    neighbors.push(grid[x + 1][y]);
-  }
-  if (y > 0) {
-    neighbors.push(grid[x][y - 1]);
-  }
-  if (y < grid[0].length - 1) {
-    neighbors.push(grid[x][y + 1]);
-  }
-  return neighbors;
-}
-
-function removeFromArray(arr, elt) {
-  for (let i = arr.length - 1; i >= 0; i--) {
-    if (arr[i] === elt) {
-      arr.splice(i, 1);
-    }
-  }
-}
-
-function simpleManhattanDistance(start, end) {
-  const d = Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
-  return d;
-}
-
-//to iterate pathfinding , clean up the grid and reset the start and end points
-function resetGridJPS(grid) {
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[0].length; j++) {
-      grid[i][j].f = 0;
-      grid[i][j].g = 0;
-      grid[i][j].h = 0;
-      grid[i][j].previous = undefined;
-    }
   }
 }
 
@@ -666,12 +658,55 @@ function resetSalesControl() {
 
 function openControlledLots() {}
 
-function processClusters(clusters, targetArray, propertySetter) {
+function processClusters(basement, clusters, targetArray, propertySetter) {
   for (let i = 0; i < clusters.length; i++) {
     const cluster = clusters[i];
     const clusterCenter = findClusterCenter(cluster);
-    const point = grid[clusterCenter.x][clusterCenter.y];
+    const point = basement.grid[clusterCenter.x][clusterCenter.y];
     propertySetter(point); // Apply the passed function to set additional properties
     targetArray.push(point);
   }
 }
+// function updateDOMPositionsForBasement(basement) {
+//   const canvasContainer = document.getElementById("canvasContainer");
+//   const canvasRect = canvasContainer.getBoundingClientRect();
+
+//   basement.starts.forEach((start, index) => {
+//     updateSelectPosition(basement, start, index, "Start");
+//   });
+
+//   basement.exits.forEach((exit, index) => {
+//     updateSelectPosition(basement, exit, index, "Exit");
+//   });
+// }
+
+// function updateSelectPosition(basement, point, index, type) {
+//   const selectId = `selectIdForBasement${basement.floor}${type}${index}`;
+//   const selectElement = document.getElementById(selectId);
+//   if (selectElement) {
+//     const newPos = calculateDOMPosition(point, basement);
+//     selectElement.style.left = `${newPos.x}px`;
+//     selectElement.style.top = `${newPos.y}px`;
+//   }
+// }
+
+// function calculateDOMPosition(point, basement) {
+//   // Ensure canvasContainer's rect is fetched fresh to accommodate any layout changes
+//   const canvasRect = document
+//     .getElementById("canvasContainer")
+//     .getBoundingClientRect();
+
+//   // Apply translation for the basement image, then scale with pixelMultiplier, apply zoom and adjust by offsets and canvasRect's position
+//   const transformedX =
+//     (point.x + basement.translate.x) * pixelMultiplier * zoom +
+//     offsetX +
+//     canvasRect.left;
+//   const transformedY =
+//     (point.y + basement.translate.y) * pixelMultiplier * zoom +
+//     offsetY +
+//     canvasRect.top;
+
+//   return { x: transformedX, y: transformedY };
+// }
+
+// // Ensure you call updateDOMPositionsForBasement for both basements after any transformations (zoom, drag) or on initial setup to keep DOM elements aligned.

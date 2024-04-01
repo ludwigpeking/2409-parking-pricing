@@ -47,6 +47,7 @@ class Customer {
 }
 
 function startBuyingSimulation() {
+  console.log("start buying simulation");
   if (!salesControlActive) {
     createCustomers();
     customersLeft = customers.slice();

@@ -276,3 +276,60 @@ function saveTableFile() {
     )
   );
 }
+
+function simpleManhattanDistance(start, end) {
+  const d = Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
+  return d;
+}
+
+//to iterate pathfinding , clean up the grid and reset the start and end points
+function resetGridJPS(grid) {
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[0].length; j++) {
+      grid[i][j].f = 0;
+      grid[i][j].g = 0;
+      grid[i][j].h = 0;
+      grid[i][j].previous = undefined;
+    }
+  }
+}
+
+function findClusterCenter(cluster) {
+  let xSum = 0;
+  let ySum = 0;
+  for (let i = 0; i < cluster.length; i++) {
+    const tile = cluster[i];
+    xSum += tile.x;
+    ySum += tile.y;
+  }
+  const x = Math.round(xSum / cluster.length);
+  const y = Math.round(ySum / cluster.length);
+  return { x: x, y: y };
+}
+
+function getNeighbors(grid, tile) {
+  const neighbors = [];
+  const x = tile.x;
+  const y = tile.y;
+  if (x > 0) {
+    neighbors.push(grid[x - 1][y]);
+  }
+  if (x < grid.length - 1) {
+    neighbors.push(grid[x + 1][y]);
+  }
+  if (y > 0) {
+    neighbors.push(grid[x][y - 1]);
+  }
+  if (y < grid[0].length - 1) {
+    neighbors.push(grid[x][y + 1]);
+  }
+  return neighbors;
+}
+
+function removeFromArray(arr, elt) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] === elt) {
+      arr.splice(i, 1);
+    }
+  }
+}
