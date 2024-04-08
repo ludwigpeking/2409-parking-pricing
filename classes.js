@@ -17,6 +17,11 @@ let maxSales = 0;
 let maxSalesIndex = -1;
 let percentages = [];
 let totalSales = [];
+let commonStarts = [];
+let combinedEnds = [];
+let openLots = [];
+let soldLots = [];
+const basement2RampMetersLoss = 50;
 
 class Customer {
   constructor(core, level = 0) {
@@ -32,8 +37,11 @@ class Customer {
     this.dists = this.core.dists;
     this.lotsLoss = [];
     this.meterValue = (this.income / 120000 / 80) * 600 * 12;
-    for (let i = 0; i < ends.length; i++) {
-      this.lotsLoss[i] = this.dists[i] * this.meterValue;
+    for (let i = 0; i < combinedEnds.length; i++) {
+      this.lotsLoss[i] =
+        (this.dists[i] +
+          basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
+        this.meterValue;
     }
     this.noLotLoss = core.maxMetersLoss * this.meterValue;
     //TODO the second noLotLoss should have a value related to wealth and frequency of car usage, with random distribution
@@ -49,13 +57,21 @@ class Customer {
 function startBuyingSimulation() {
   console.log("start buying simulation");
   if (!salesControlActive) {
+    soldLots = [];
     createCustomers();
     customersLeft = customers.slice();
-    textLayer.clear();
-    image(img, 0, 0, width, height);
+    [basement1, basement2].forEach((basement) => {
+      if (!basement.textLayer) {
+        basement.textLayer = createGraphics(width, height);
+      } else {
+        basement.textLayer.clear();
+      }
+    });
+    combineEnds(basement1, basement2);
+    mergeCommonStarts(basement1, basement2);
     bidding();
     //draw texts on textLayer
-    drawDomsValue();
+    // drawDomsValue();
     //save image
     // saveCanvas("myCanvas", "jpg");
   } else {
@@ -63,30 +79,85 @@ function startBuyingSimulation() {
   }
 }
 
-function createCustomers() {
-  //check exit.MinutesLoss plus start.distToExit minimum, the smallest sum is the final maxMinutesLoss, add to the start.maxMinutesLoss
-  for (let i = 0; i < starts.length; i++) {
-    let minMeterLoss = 2000;
-    starts[i].maxMetersLoss = 2000;
-    for (let j = 0; j < exits.length; j++) {
-      if (
-        starts[i].distsToExits[j] + exits[j].metersLoss + 120 <
-        minMeterLoss
-      ) {
-        minMeterLoss = starts[i].distsToExits[j] + exits[j].metersLoss + 120;
+function combineEnds(basement1, basement2) {
+  //put the combinedEnds of the two basements into one array
+  combinedEnds = [];
+
+  basement1.ends.forEach((end) => {
+    combinedEnds.push({ ...end, basement: 1 });
+  });
+
+  basement2.ends.forEach((end) => {
+    combinedEnds.push({ ...end, basement: 2 });
+  });
+  starts = basement1.starts.concat(basement2.starts);
+  openLots = basement1.openLots.concat(basement2.openLots);
+}
+
+//recognize which starts in basement2 are common with basement1, merge their dists arrays into that of each start in basement1
+function mergeCommonStarts(basement1, basement2, tolerance = 2) {
+  commonStarts = [];
+  for (let i = 0; i < basement1.starts.length; i++) {
+    for (let j = 0; j < basement2.starts.length; j++) {
+      let dx = Math.abs(basement1.starts[i].x - basement2.starts[j].x);
+      let dy = Math.abs(basement1.starts[i].y - basement2.starts[j].y);
+
+      // Check if the difference in both x and y falls within the tolerance
+      if (dx <= tolerance && dy <= tolerance) {
+        commonStarts.push(basement2.starts[j]);
+        // Here we assume dists is an array and we want to merge the two arrays
+        basement1.starts[i].dists = [
+          ...basement1.starts[i].dists,
+          ...basement2.starts[j].dists,
+        ];
+
+        // Optionally, you might want to update the position of the common start
+        // to be the average of the two if they're not exactly the same
+        if (dx > 0 || dy > 0) {
+          basement1.starts[i].x =
+            (basement1.starts[i].x + basement2.starts[j].x) / 2;
+          basement1.starts[i].y =
+            (basement1.starts[i].y + basement2.starts[j].y) / 2;
+        }
+
+        break; // Assuming each start in basement2 matches at most one start in basement1
       }
     }
-    starts[i].maxMetersLoss = minMeterLoss;
+  }
+}
+
+function createCustomers() {
+  //check exit.MinutesLoss plus start.distToExit minimum, the smallest sum is the final maxMinutesLoss, add to the start.maxMinutesLoss
+  for (let i = 0; i < basement1.starts.length; i++) {
+    let minMeterLoss = 2000;
+    basement1.starts[i].maxMetersLoss = 2000;
+    for (let j = 0; j < basement1.exits.length; j++) {
+      if (
+        basement1.starts[i].distsToExits[j] +
+          basement1.exits[j].metersLoss +
+          120 <
+        minMeterLoss
+      ) {
+        minMeterLoss =
+          basement1.starts[i].distsToExits[j] +
+          basement1.exits[j].metersLoss +
+          120;
+      }
+    }
+    basement1.starts[i].maxMetersLoss = minMeterLoss;
   }
   customers = [];
   // create customers
   householdNumbers = 0;
   customersTotalIncome = 0;
-  for (let i = 0; i < starts.length; i++) {
-    for (let j = 0; j < coreHouseholdNumbers[i]; j++) {
+  for (let i = 0; i < basement1.starts.length; i++) {
+    for (let j = 0; j < basement1.coreHouseholdNumbers[i]; j++) {
       householdNumbers++;
 
-      const customer = new Customer(starts[i], coreClasses[i]);
+      const customer = new Customer(
+        basement1.starts[i],
+        basement1.coreClasses[i]
+      );
       customersTotalIncome += customer.income;
       if (customer.firstCar) {
         customers.push(customer);
@@ -97,7 +168,7 @@ function createCustomers() {
     }
   }
   //shuffle the customers
-  shuffle(customers, true);
+  shuffle(customers, true); //p5.js shuffle
   console.log("cars: ", customers.length);
 }
 
@@ -215,51 +286,52 @@ function bidding() {
       openLots.splice(i, 1);
     }
   }
-
+  drawParkingLotsAndPrices();
   // draw the results on the canvas with colors
   console.log("maxSalesIndex: ", maxSalesIndex, "maxSales: ", maxSales);
-  for (let i = 0; i < ends.length; i++) {
-    fill(
-      (prices[maxSalesIndex][i] * 10) / 10000,
-      255 - (prices[maxSalesIndex][i] * 10) / 10000,
-      255
-    );
-    strokeWeight(0.5);
-    stroke(255, 100);
-    rectMode(CENTER);
-    rect(
-      ends[i].x * pixelMultiplier,
-      ends[i].y * pixelMultiplier,
-      ends[i].horizontal * 2.5 * pixelMultiplier + 2.5 * pixelMultiplier,
-      -ends[i].horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier
-    );
-    if (realizations[maxSalesIndex][i] === 0) {
-      fill(255, 0, 0);
-      noStroke();
-      circle(
-        ends[i].x * pixelMultiplier,
-        ends[i].y * pixelMultiplier,
-        2.5 * pixelMultiplier
-      );
-    }
-  }
+  // for (let i = 0; i < combinedEnds.length; i++) {
+  //   fill(
+  //     (prices[maxSalesIndex][i] * 10) / 10000,
+  //     255 - (prices[maxSalesIndex][i] * 10) / 10000,
+  //     255
+  //   );
+  //   strokeWeight(0.5);
+  //   stroke(255, 100);
+  //   rectMode(CENTER);
+  //   rect(
+  //     combinedEnds[i].x * pixelMultiplier,
+  //     combinedEnds[i].y * pixelMultiplier,
+  //     combinedEnds[i].horizontal * 2.5 * pixelMultiplier +
+  //       2.5 * pixelMultiplier,
+  //     -combinedEnds[i].horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier
+  //   );
+  //   if (realizations[maxSalesIndex][i] === 0) {
+  //     fill(255, 0, 0);
+  //     noStroke();
+  //     circle(
+  //       combinedEnds[i].x * pixelMultiplier,
+  //       combinedEnds[i].y * pixelMultiplier,
+  //       2.5 * pixelMultiplier
+  //     );
+  //   }
+  // }
 
-  for (let i = 0; i < ends.length; i++) {
-    let x = ends[i].x;
-    let y = ends[i].y;
+  // for (let i = 0; i < combinedEnds.length; i++) {
+  //   let x = combinedEnds[i].x;
+  //   let y = combinedEnds[i].y;
 
-    colorMode(RGB);
-    fill(255);
-    noStroke();
-    textSize(pixelMultiplier);
-    //center the text
-    textAlign(CENTER, CENTER);
-    text(
-      round(prices[maxSalesIndex][i] / 10000, 1),
-      x * pixelMultiplier,
-      y * pixelMultiplier
-    );
-  }
+  //   colorMode(RGB);
+  //   fill(255);
+  //   noStroke();
+  //   textSize(pixelMultiplier);
+  //   //center the text
+  //   textAlign(CENTER, CENTER);
+  //   text(
+  //     round(prices[maxSalesIndex][i] / 10000, 1),
+  //     x * pixelMultiplier,
+  //     y * pixelMultiplier
+  //   );
+  // }
 
   console.log(prices[maxSalesIndex]);
   console.log(realizations[maxSalesIndex]);
@@ -289,4 +361,54 @@ function findOriginalCustomerIndex(customer) {
     }
   }
   return -1; // Return -1 if no match is found
+}
+
+function drawParkingLotsAndPrices() {
+  // Clear existing drawings on textLayers
+  basement1.textLayer.clear();
+  basement2.textLayer.clear();
+
+  combinedEnds.forEach((lot, i) => {
+    // Select the correct textLayer based on the basement identifier
+    let targetLayer =
+      lot.basement === 1 ? basement1.textLayer : basement2.textLayer;
+
+    // Adjust positions without needing translation since drawing directly on the respective layer
+    let x = lot.x * pixelMultiplier;
+    let y = lot.y * pixelMultiplier;
+
+    // Set drawing styles for the targetLayer
+    targetLayer.fill(
+      (prices[maxSalesIndex][i] * 10) / 10000,
+      255 - (prices[maxSalesIndex][i] * 10) / 10000,
+      255
+    );
+    targetLayer.strokeWeight(0.5);
+    targetLayer.stroke(255, 100);
+    targetLayer.rectMode(CENTER);
+
+    // Draw the rectangle
+    targetLayer.rect(
+      x,
+      y,
+      lot.horizontal * 2.5 * pixelMultiplier + 2.5 * pixelMultiplier,
+      -lot.horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier
+    );
+
+    // Draw the circle for sold lots
+    if (realizations[maxSalesIndex][i] === 0) {
+      targetLayer.fill(255, 0, 0);
+      targetLayer.noStroke();
+      targetLayer.circle(x, y, 2.5 * pixelMultiplier);
+    }
+
+    // Draw the price text
+    targetLayer.fill(255);
+    targetLayer.noStroke();
+    targetLayer.textSize(pixelMultiplier);
+    targetLayer.textAlign(CENTER, CENTER);
+    targetLayer.text(round(prices[maxSalesIndex][i] / 10000, 1), x, y);
+  });
+
+  // After drawing, make sure to render these layers in the main draw loop to see the changes
 }

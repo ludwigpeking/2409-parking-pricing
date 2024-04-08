@@ -3,6 +3,7 @@ class Basement {
     this.floor = floor;
     this.inputImage = null;
     this.img = null;
+    this.textLayer = null;
     this.translate = { x: 0, y: 0 };
     this.grid = [];
     this.starts = []; // Cores
@@ -21,6 +22,12 @@ class Basement {
     this.clustersYellow = [];
     this.clustersGreen = [];
     this.clustersCyan = [];
+
+    this.domElements = []; // Track created DOM elements
+  }
+  clearDOMElements() {
+    this.domElements.forEach((el) => el.remove());
+    this.domElements = []; // Reset the list
   }
 }
 let basement1 = new Basement(1);
@@ -41,19 +48,22 @@ let dragging = false;
 
 function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
-  let canvas = createCanvas(2000 * pixelMultiplier, 1000 * pixelMultiplier); // Start with a default size
+  let canvas = createCanvas(1000 * pixelMultiplier, 500 * pixelMultiplier); // Start with a default size
   canvas.parent("canvasContainer");
   background(220); // Set a default background
-  cursor("zoom-in");
+  // cursor("zoom-in");
   // Set up file input listeners
   document
     .getElementById("basement1Input")
     .addEventListener("change", function (e) {
       if (e.target.files && e.target.files[0]) {
+        basement1.clearDOMElements();
+        basement1 = new Basement(1);
         let file = e.target.files[0];
         loadImage(URL.createObjectURL(file), function (loadedImg) {
           basement1.inputImage = loadedImg;
           processImage(basement1, basement1.inputImage);
+          combineEnds(basement1, basement2);
         });
       }
     });
@@ -61,10 +71,13 @@ function setup() {
     .getElementById("basement2Input")
     .addEventListener("change", function (e) {
       if (e.target.files && e.target.files[0]) {
+        basement2.clearDOMElements();
+        basement2 = new Basement(2);
         let file = e.target.files[0];
         loadImage(URL.createObjectURL(file), function (loadedImg) {
           basement2.inputImage = loadedImg;
           processImage(basement2, basement2.inputImage);
+          combineEnds(basement1, basement2);
         });
       }
     });
@@ -98,6 +111,9 @@ function draw() {
   if (basement1.img) {
     image(basement1.img, 0, 0);
   }
+  if (basement1.textLayer) {
+    image(basement1.textLayer, 0, 0); // Render basement1's textLayer
+  }
   if (basement2.img) {
     // Adjust the position of the second image
     basement2.translate.x = basement1.inputImage
@@ -105,44 +121,9 @@ function draw() {
       : 0;
     image(basement2.img, basement2.translate.x * pixelMultiplier, 0);
   }
-  // for (let basement of [basement1, basement2]) {
-  //   basement.starts.forEach((start, index) => {
-  //     const selectElement = document.getElementById(
-  //       `selectIdForBasement${basement.floor}Start${index}`
-  //     );
-  //     if (selectElement) {
-  //       updateDOMPosition(
-  //         selectElement,
-  //         (start.x + basement.translate.x) * pixelMultiplier,
-  //         start.y * pixelMultiplier
-  //       );
-  //     }
-  //     const inputElement = document.getElementById(
-  //       `inputIdForBasement${basement.floor}Start${index}`
-  //     );
-  //     if (inputElement) {
-  //       updateDOMPosition(
-  //         inputElement,
-  //         (start.x + basement.translate.x) * pixelMultiplier,
-  //         start.y * pixelMultiplier
-  //       );
-  //     }
-  //   });
-  //   basement.exits.forEach((exit, index) => {
-  //     const selectElement = document.getElementById(
-  //       `selectIdForBasement${basement.floor}Exit${index}`
-  //     );
-  //     if (selectElement) {
-  //       updateDOMPosition(
-  //         selectElement,
-  //         (exit.x + basement.translate.x) * pixelMultiplier,
-  //         exit.y * pixelMultiplier
-  //       );
-  //     }
-  //   });
-  // }
-  // updateDOMPositionsForBasement(basement1);
-  // updateDOMPositionsForBasement(basement2);
+  if (basement2.textLayer) {
+    image(basement2.textLayer, basement2.translate.x * pixelMultiplier, 0);
+  }
 }
 
 function processImage(basement, inputImage) {
@@ -304,18 +285,20 @@ function processImage(basement, inputImage) {
       start.distsToExits.push(dist);
     }
   }
-
+  const canvasPosition = getPositionOfCanvas();
   //add selection doms to the exit points in the canvas
   for (let i = 0; i < basement.exits.length; i++) {
     const exit = basement.exits[i];
     exit.metersLoss = 800;
     basement.exitClasses[i] = 1; //default is moderate
     const select = createSelect();
+    basement.domElements.push(select);
     select.id(`selectIdForBasement${basement.floor}Exit${i}`);
 
     const xTranslate = (exit.x + basement.translate.x) * pixelMultiplier;
     console.log("xTranslate", xTranslate);
-    select.position(xTranslate, exit.y * pixelMultiplier + 60);
+    //adjust y position of the select dom, align with the canvas position
+    select.position(xTranslate, exit.y * pixelMultiplier + canvasPosition.y);
     select.option("易得 easy");
     select.option("中等 moderate");
     select.option("困难 difficult");
@@ -350,11 +333,12 @@ function processImage(basement, inputImage) {
   for (let i = 0; i < basement.starts.length; i++) {
     const start = basement.starts[i];
     const select = createSelect();
+    basement.domElements.push(select);
     select.id(`selectIdForBasement${basement.floor}Start${i}`);
     console.log("start translate", start.x + basement.translate.x);
     select.position(
       (start.x + basement.translate.x) * pixelMultiplier,
-      start.y * pixelMultiplier + 60
+      start.y * pixelMultiplier + canvasPosition.y
     );
     select.option("刚需 surviving");
     select.option("首置 modest");
@@ -387,10 +371,11 @@ function processImage(basement, inputImage) {
   for (let i = 0; i < basement.starts.length; i++) {
     const start = basement.starts[i];
     const input = createInput();
+    basement.domElements.push(input);
     input.id(`inputIdForBasement${basement.floor}Start${i}`);
     input.position(
-      (start.x + basement.translate.x) * pixelMultiplier - 10,
-      start.y * pixelMultiplier + 75
+      (start.x + basement.translate.x) * pixelMultiplier - 20,
+      start.y * pixelMultiplier + canvasPosition.y
     );
     input.size(15, 10);
     input.style("font-size", "10px");
@@ -437,7 +422,7 @@ function makeGrid(basement, inputImage) {
         x: i,
         y: j,
         ...cellProps,
-        dists: [], // Assuming dists is always an empty array initially
+        dists: [],
       });
 
       offscreen.noStroke();
@@ -548,58 +533,6 @@ function confirmSelection() {
   }
 }
 
-// function mousePressed() {
-//   if (selection) {
-//     x1 = mouseX;
-//     y1 = mouseY;
-//   }
-// }
-
-// function mouseDragged() {
-//   if (selection) {
-//     x2 = mouseX;
-//     y2 = mouseY;
-//   }
-// }
-
-// function mouseReleased() {
-//   if (selection) {
-//     x2 = mouseX;
-//     y2 = mouseY;
-//     pushControlledLots();
-//   }
-// }
-
-function mouseWheel(event) {
-  // Zoom in or out
-  let zoomIntensity = 2;
-  zoom += event.delta * -0.001 * zoomIntensity;
-  zoom = constrain(zoom, 0.5, 5); // Limit zoom to prevent inversion or excessive zoom
-  return false; // Prevent default behavior
-}
-
-function mousePressed() {
-  // Start dragging
-  startDragX = mouseX - offsetX;
-  startDragY = mouseY - offsetY;
-  dragging = true;
-  cursor(MOVE);
-}
-
-function mouseDragged() {
-  if (dragging) {
-    // Update offset based on drag
-    offsetX = mouseX - startDragX;
-    offsetY = mouseY - startDragY;
-  }
-}
-
-function mouseReleased() {
-  // Stop dragging
-  dragging = false;
-  cursor("zoom-in");
-}
-
 function confirmControlledLots() {
   confirmed = true;
   selection = false;
@@ -667,46 +600,3 @@ function processClusters(basement, clusters, targetArray, propertySetter) {
     targetArray.push(point);
   }
 }
-// function updateDOMPositionsForBasement(basement) {
-//   const canvasContainer = document.getElementById("canvasContainer");
-//   const canvasRect = canvasContainer.getBoundingClientRect();
-
-//   basement.starts.forEach((start, index) => {
-//     updateSelectPosition(basement, start, index, "Start");
-//   });
-
-//   basement.exits.forEach((exit, index) => {
-//     updateSelectPosition(basement, exit, index, "Exit");
-//   });
-// }
-
-// function updateSelectPosition(basement, point, index, type) {
-//   const selectId = `selectIdForBasement${basement.floor}${type}${index}`;
-//   const selectElement = document.getElementById(selectId);
-//   if (selectElement) {
-//     const newPos = calculateDOMPosition(point, basement);
-//     selectElement.style.left = `${newPos.x}px`;
-//     selectElement.style.top = `${newPos.y}px`;
-//   }
-// }
-
-// function calculateDOMPosition(point, basement) {
-//   // Ensure canvasContainer's rect is fetched fresh to accommodate any layout changes
-//   const canvasRect = document
-//     .getElementById("canvasContainer")
-//     .getBoundingClientRect();
-
-//   // Apply translation for the basement image, then scale with pixelMultiplier, apply zoom and adjust by offsets and canvasRect's position
-//   const transformedX =
-//     (point.x + basement.translate.x) * pixelMultiplier * zoom +
-//     offsetX +
-//     canvasRect.left;
-//   const transformedY =
-//     (point.y + basement.translate.y) * pixelMultiplier * zoom +
-//     offsetY +
-//     canvasRect.top;
-
-//   return { x: transformedX, y: transformedY };
-// }
-
-// // Ensure you call updateDOMPositionsForBasement for both basements after any transformations (zoom, drag) or on initial setup to keep DOM elements aligned.

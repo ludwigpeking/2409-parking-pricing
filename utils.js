@@ -103,40 +103,51 @@ function normalRandom(mean, stdDev = mean * 0.2) {
 
 function drawCustomerLotLines(maxSalesIndex) {
   let choices = customerLotChoices[maxSalesIndex];
-  for (let customerIndex in choices) {
-    let lotIndex = choices[customerIndex];
+
+  Object.entries(choices).forEach(([customerIndex, lotIndex]) => {
     let customer = customers[customerIndex];
-    let lot = ends[lotIndex];
+    let lot = combinedEnds[lotIndex];
+    let basement = lot.basement === 1 ? basement1 : basement2; // Determine the correct basement
 
     let startX = customer.core.x * pixelMultiplier;
     let startY = customer.core.y * pixelMultiplier;
     let endX = lot.x * pixelMultiplier;
     let endY = lot.y * pixelMultiplier;
 
-    stroke(0, 70); // Color for the line
-    strokeWeight(2); // Line thickness
-    noFill();
-    dashLine(startX, startY, endX, endY);
-    circle(endX, endY, 2 * pixelMultiplier); // Draw a circle at the end
-    fill(0);
-    text(customerIndex, endX, endY + 10);
-  }
+    // Select the correct textLayer for drawing
+    let targetLayer = basement.textLayer;
+
+    // Set drawing styles for targetLayer
+    targetLayer.stroke(0, 70); // Color for the line
+    targetLayer.strokeWeight(2); // Line thickness
+    targetLayer.noFill();
+
+    // Draw the dashed line on the targetLayer
+    dashLine(targetLayer, startX, startY, endX, endY);
+
+    // Draw a circle at the end on the targetLayer
+    targetLayer.circle(endX, endY, 2 * pixelMultiplier);
+
+    // Draw text annotation on the targetLayer
+    targetLayer.fill(0);
+    targetLayer.text(customerIndex, endX, endY + 10);
+  });
 }
 
-function dashLine(x1, y1, x2, y2) {
-  let dash = 2;
-  let space = 2;
-  let distance = dist(x1, y1, x2, y2);
-  let dashNumber = distance / (dash + space);
-  let dashX = (x2 - x1) / dashNumber;
-  let dashY = (y2 - y1) / dashNumber;
-  for (let i = 0; i < dashNumber; i++) {
+// A simple implementation of dashLine function if not already defined
+function dashLine(layer, x1, y1, x2, y2, len = 5, gap = 3) {
+  let d = dist(x1, y1, x2, y2);
+  let dashNum = d / (len + gap);
+  let dx = (x2 - x1) / dashNum;
+  let dy = (y2 - y1) / dashNum;
+
+  for (let i = 0; i < dashNum; i++) {
     if (i % 2 === 0) {
-      line(
-        x1 + dashX * i,
-        y1 + dashY * i,
-        x1 + dashX * i + dashX,
-        y1 + dashY * i + dashY
+      layer.line(
+        x1 + dx * i,
+        y1 + dy * i,
+        x1 + dx * (i + 1),
+        y1 + dy * (i + 1)
       );
     }
   }
@@ -215,11 +226,12 @@ function dashLine(x1, y1, x2, y2) {
 
 function printOutput() {
   console.log("模拟结果");
-  console.log("总车位数 : " + ends.length);
+  console.log("总车位数 : " + combinedEnds.length);
   console.log("总户数 : " + householdNumbers);
   console.log(
     "总售出车位数 : " +
-      (ends.length - realizations[maxSalesIndex].reduce((a, b) => a + b, 0))
+      (combinedEnds.length -
+        realizations[maxSalesIndex].reduce((a, b) => a + b, 0))
   );
   console.log("车位售出率 : " + round(percentages[maxSalesIndex] * 100) + "%");
   console.log(
@@ -229,7 +241,7 @@ function printOutput() {
     "单车位实现价格 : " +
       round(
         totalSales[maxSalesIndex] /
-          (ends.length -
+          (combinedEnds.length -
             realizations[maxSalesIndex].reduce((a, b) => a + b, 0)) /
           10000,
         1
@@ -252,11 +264,11 @@ function saveTableFile() {
   table.addColumn("单车位实现价格 averagePrice");
 
   let newRow = table.addRow();
-  newRow.setNum("总车位数 totalLots", ends.length);
+  newRow.setNum("总车位数 totalLots", combinedEnds.length);
   newRow.setNum("总户数 totalHouseholds", householdNumbers);
   newRow.setNum(
     "总售出车位数 totalSoldLots",
-    ends.length - realizations[maxSalesIndex].reduce((a, b) => a + b, 0)
+    combinedEnds.length - realizations[maxSalesIndex].reduce((a, b) => a + b, 0)
   );
   newRow.setNum(
     "车位售出率 realizationPercentage",
@@ -270,7 +282,8 @@ function saveTableFile() {
     "单车位实现价格 averagePrice",
     round(
       totalSales[maxSalesIndex] /
-        (ends.length - realizations[maxSalesIndex].reduce((a, b) => a + b, 0)) /
+        (combinedEnds.length -
+          realizations[maxSalesIndex].reduce((a, b) => a + b, 0)) /
         10000,
       1
     )
@@ -332,4 +345,16 @@ function removeFromArray(arr, elt) {
       arr.splice(i, 1);
     }
   }
+}
+
+function getPositionOfCanvas() {
+  const canvasContainer = document.getElementById("canvasContainer");
+  if (canvasContainer) {
+    const rect = canvasContainer.getBoundingClientRect();
+    console.log("Canvas Position - X: " + rect.left + ", Y: " + rect.top);
+    // Now you have the x and y position of the canvas
+    // You can use rect.top as the canvas's Y position
+    return { x: rect.left, y: rect.top };
+  }
+  return null;
 }
