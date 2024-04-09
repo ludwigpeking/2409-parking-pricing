@@ -31,7 +31,7 @@
       </button>
       <div style="width: 500px; font-size: 12px">
         <p>
-          使用说明：<br />1）按照要求处理好图片：用蓝色标记车位，红色标记核心筒，黑色代表墙壁，把图片尺寸调整到每个像素代表现实中0.5米。<br />
+          使用说明 Description：<br />1）按照要求处理好图片：用蓝色标记车位，红色标记核心筒，黑色代表墙壁，把图片尺寸调整到每个像素代表现实中0.5米。<br />
           请注意图片处理的精度会影响计算结果。本版是试用版。<br />2)
           请选择处理好的图片，代替上面的示例图片。<br />3)
           选择核心筒的内产品的类型，“首改”大致代表120㎡左右的户型，对应的客户家庭月收入在2万元左右。<br />4)
@@ -53,14 +53,100 @@
           value=""
         />
       </div>
+      <div style="margin-bottom: 20px">
+        <label for="batchChangeCoreClasses">批量更改核心筒类别:</label>
+        <select id="batchChangeCoreClasses">
+          <option value="刚需 surviving">刚需 surviving</option>
+          <option value="首置 modest">首置 modest</option>
+          <option value="首改 comfortable">首改 comfortable</option>
+          <option value="再改 affluent">再改 affluent</option>
+          <option value="高改 wealthy">高改 wealthy</option></select
+        ><br />
+
+        <label for="batchChangeNumbers">批量更改户数:</label>
+        <input
+          type="number"
+          id="batchChangeNumbers"
+          placeholder="输入户数 Input Number"
+        />
+      </div>
       <div>
-        <button id="resetButton">重置 reset</button>
+        <button id="saveButton">Save State</button>
+        <button id="loadButton">Load State</button>
+        <input type="file" id="fileInput" style="display: none" />
+      </div>
+      <div>
+        <button id="resetButton">重置销控 reset</button>
       </div>
     </div>
 
     <div id="canvasContainer"></div>
 
     <script src="p5.js"></script>
+    <script>
+      // This code will run after the page has fully loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        // Update core classes based on selection
+        document
+          .getElementById("batchChangeCoreClasses")
+          .addEventListener("change", function () {
+            const newValue = this.value;
+            // Update all core class selects
+            const selects = document.querySelectorAll(
+              "select[id^='selectIdForBasement']"
+            );
+            selects.forEach((select) => {
+              select.value = newValue;
+              // Trigger change event if needed
+              const event = new Event("change");
+              select.dispatchEvent(event);
+            });
+          });
+
+        // Update household numbers based on input
+        document
+          .getElementById("batchChangeNumbers")
+          .addEventListener("input", function () {
+            const newValue = this.value;
+            // Update all household number inputs
+            const inputs = document.querySelectorAll(
+              "input[id^='inputIdForBasement']"
+            );
+            inputs.forEach((input) => {
+              input.value = newValue;
+              // Trigger input event if needed
+              const event = new Event("input");
+              input.dispatchEvent(event);
+            });
+          });
+      });
+      document.addEventListener("DOMContentLoaded", function () {
+        const saveButton = document.getElementById("saveButton");
+        const loadButton = document.getElementById("loadButton");
+        const fileInput = document.getElementById("fileInput");
+
+        saveButton.addEventListener("click", function () {
+          saveBasementState();
+        });
+
+        loadButton.addEventListener("click", function () {
+          fileInput.click(); // Programmatically click the hidden file input
+        });
+
+        fileInput.addEventListener("change", function () {
+          const fileReader = new FileReader();
+          fileReader.onload = function (event) {
+            const state = JSON.parse(event.target.result);
+            // Logic to restore state goes here
+            console.log("State loaded", state);
+            setBasementState(state.basement1);
+            setBasementState(state.basement2);
+          };
+          fileReader.readAsText(this.files[0]);
+        });
+      });
+    </script>
+
     <script src="utils.js"></script>
     <script src="classes.js"></script>
     <script src="sketch.js"></script>

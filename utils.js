@@ -119,7 +119,7 @@ function drawCustomerLotLines(maxSalesIndex) {
 
     // Set drawing styles for targetLayer
     targetLayer.stroke(0, 70); // Color for the line
-    targetLayer.strokeWeight(2); // Line thickness
+    targetLayer.strokeWeight(1); // Line thickness
     targetLayer.noFill();
 
     // Draw the dashed line on the targetLayer
