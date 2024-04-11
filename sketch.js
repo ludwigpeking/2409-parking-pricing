@@ -1,39 +1,6 @@
-class Basement {
-  constructor(floor) {
-    this.floor = floor;
-    this.inputImage = null;
-    this.img = null;
-    this.textLayer = null;
-    this.translate = { x: 0, y: 0 };
-    this.grid = [];
-    this.starts = []; // Cores
-    this.coreClasses = [];
-    this.detachedStarts = [];
-    this.coreHouseholdNumbers = [];
-    this.transfers = [];
-    this.ends = []; // Parking lots
-    this.exits = [];
-    this.exitClasses = [];
-    this.controlledLots = [];
-    this.openLots = [];
-    this.soldLots = [];
-    this.clustersBlue = [];
-    this.clustersRed = [];
-    this.clustersYellow = [];
-    this.clustersGreen = [];
-    this.clustersCyan = [];
-
-    this.domElements = []; // Track created DOM elements
-  }
-  clearDOMElements() {
-    this.domElements.forEach((el) => el.remove());
-    this.domElements = []; // Reset the list
-  }
-}
 let basement1 = new Basement(1);
 let basement2 = new Basement(2);
 
-//gl
 let pixelMultiplier = 8;
 //mouse events
 let x1, y1, x2, y2;
@@ -64,6 +31,7 @@ function setup() {
           basement1.inputImage = loadedImg;
           processImage(basement1, basement1.inputImage);
           combineEnds(basement1, basement2);
+          mergeCommonStarts(basement1, basement2);
         });
       }
     });
@@ -78,6 +46,7 @@ function setup() {
           basement2.inputImage = loadedImg;
           processImage(basement2, basement2.inputImage);
           combineEnds(basement1, basement2);
+          mergeCommonStarts(basement1, basement2);
         });
       }
     });
@@ -127,11 +96,10 @@ function draw() {
 }
 
 function processImage(basement, inputImage) {
-  console.log("processImage", basement.floor, inputImage);
+  console.log("processImage", "basement", basement.floor, inputImage);
   basement.grid = makeGrid(basement, inputImage);
   if (basement.floor === 2) {
     basement.translate.x = basement1.inputImage.width;
-    console.log("translate x", basement.translate.x);
   }
 
   const pointTypes = [
@@ -365,6 +333,7 @@ function processImage(basement, inputImage) {
 
     function mySelectEvent() {
       basement.coreClasses[i] = listOfCustomers.indexOf(select.value());
+      console.log(basement.coreClasses[i])
       //put text of the selection on the canvas near start point
     }
   }
@@ -601,30 +570,4 @@ function processClusters(basement, clusters, targetArray, propertySetter) {
     propertySetter(point); // Apply the passed function to set additional properties
     targetArray.push(point);
   }
-}
-
-function saveBasementState() {
-  const state = {
-    basement1: {
-      // Assuming you have a method to get a data URL from your image
-      img: basement1.img.canvas.toDataURL(),
-      // Add other properties as needed
-      starts: basement1.starts,
-
-      // Repeat for other properties you need to save
-    },
-    basement2: {
-      img: basement2.img.canvas.toDataURL(),
-      starts: basement2.starts,
-      // Repeat for other properties
-    },
-    // Add additional basements or properties as needed
-  };
-
-  const dataStr =
-    "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
-  const dlAnchorElem = document.createElement("a");
-  dlAnchorElem.setAttribute("href", dataStr);
-  dlAnchorElem.setAttribute("download", "basement-state.json");
-  dlAnchorElem.click();
 }

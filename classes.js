@@ -67,8 +67,7 @@ function startBuyingSimulation() {
         basement.textLayer.clear();
       }
     });
-    combineEnds(basement1, basement2);
-    mergeCommonStarts(basement1, basement2);
+
     bidding();
     //draw texts on textLayer
     // drawDomsValue();
@@ -190,6 +189,8 @@ function bidding() {
   let Round = 0;
   totalSales = [];
   percentages = [];
+  openLots = combinedEnds.slice();
+  console.log("openLots: ", openLots.length);
   prices.push(new Array(openLots.length).fill(guessHigh));
   maxSales = 0;
   maxSalesIndex = -1;
@@ -258,6 +259,7 @@ function bidding() {
   }
   //put realized customers into customersUsed,remove from customers
   customersUsed = [];
+  console.log("info check:", customersRealizations);
   for (let i = 0; i < customersRealizations[maxSalesIndex].length; i++) {
     if (customersRealizations[maxSalesIndex][i] === 1) {
       let originalCustomerIndex = findOriginalCustomerIndex(customersLeft[i]);
@@ -287,63 +289,12 @@ function bidding() {
     }
   }
   drawParkingLotsAndPrices();
-  // draw the results on the canvas with colors
   console.log("maxSalesIndex: ", maxSalesIndex, "maxSales: ", maxSales);
-  // for (let i = 0; i < combinedEnds.length; i++) {
-  //   fill(
-  //     (prices[maxSalesIndex][i] * 10) / 10000,
-  //     255 - (prices[maxSalesIndex][i] * 10) / 10000,
-  //     255
-  //   );
-  //   strokeWeight(0.5);
-  //   stroke(255, 100);
-  //   rectMode(CENTER);
-  //   rect(
-  //     combinedEnds[i].x * pixelMultiplier,
-  //     combinedEnds[i].y * pixelMultiplier,
-  //     combinedEnds[i].horizontal * 2.5 * pixelMultiplier +
-  //       2.5 * pixelMultiplier,
-  //     -combinedEnds[i].horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier
-  //   );
-  //   if (realizations[maxSalesIndex][i] === 0) {
-  //     fill(255, 0, 0);
-  //     noStroke();
-  //     circle(
-  //       combinedEnds[i].x * pixelMultiplier,
-  //       combinedEnds[i].y * pixelMultiplier,
-  //       2.5 * pixelMultiplier
-  //     );
-  //   }
-  // }
-
-  // for (let i = 0; i < combinedEnds.length; i++) {
-  //   let x = combinedEnds[i].x;
-  //   let y = combinedEnds[i].y;
-
-  //   colorMode(RGB);
-  //   fill(255);
-  //   noStroke();
-  //   textSize(pixelMultiplier);
-  //   //center the text
-  //   textAlign(CENTER, CENTER);
-  //   text(
-  //     round(prices[maxSalesIndex][i] / 10000, 1),
-  //     x * pixelMultiplier,
-  //     y * pixelMultiplier
-  //   );
-  // }
 
   console.log(prices[maxSalesIndex]);
   console.log(realizations[maxSalesIndex]);
   console.log(round(percentages[maxSalesIndex] * 100), "%");
   console.log("Max Sales: ", totalSales[maxSalesIndex]);
-
-  //store the current canvas
-  // img = get(0, 0, width, height);
-  //make the canvas larger as the bottom
-  // resizeCanvas(width, height + 12 * pixelMultiplier);
-  //draw the saved pixels on the canvas
-  // image(img, 0, 0 )
 
   //print results on the canvas: total lot number, total customer number, realization percentage, total sales, average price
   printOutput();
