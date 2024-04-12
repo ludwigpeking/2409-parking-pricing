@@ -1,7 +1,7 @@
 let basement1 = new Basement(1);
 let basement2 = new Basement(2);
 
-let pixelMultiplier = 8;
+let pixelMultiplier = 4;
 //mouse events
 let x1, y1, x2, y2;
 let selection = false;
@@ -15,7 +15,7 @@ let dragging = false;
 
 function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
-  let canvas = createCanvas(1000 * pixelMultiplier, 500 * pixelMultiplier); // Start with a default size
+  let canvas = createCanvas(1200 * pixelMultiplier, 800 * pixelMultiplier); // Start with a default size
   canvas.parent("canvasContainer");
   background(220); // Set a default background
   // cursor("zoom-in");
@@ -98,6 +98,7 @@ function draw() {
 function processImage(basement, inputImage) {
   console.log("processImage", "basement", basement.floor, inputImage);
   basement.grid = makeGrid(basement, inputImage);
+  basement.nodeId = 0;
   if (basement.floor === 2) {
     basement.translate.x = basement1.inputImage.width;
   }
@@ -194,6 +195,8 @@ function processImage(basement, inputImage) {
     (point) => (point.exit = true)
   );
 
+  initializePathfindingNodes(basement);
+
   for (let i = 0; i < basement.starts.length; i++) {
     const start = basement.starts[i];
     for (let j = 0; j < basement.ends.length; j++) {
@@ -253,6 +256,12 @@ function processImage(basement, inputImage) {
       start.distsToExits.push(dist);
     }
   }
+
+  assignNodeIds(basement.starts, basement, "start");
+  assignNodeIds(basement.ends, basement, "end");
+  assignNodeIds(basement.transfers, basement, "transfer");
+  assignNodeIds(basement.detachedStarts, basement, "detachedStart");
+
   const canvasPosition = getPositionOfCanvas();
   //add selection doms to the exit points in the canvas
   const listOfExits = ["易得 easy", "中等 moderate", "困难 difficult"];
@@ -333,7 +342,7 @@ function processImage(basement, inputImage) {
 
     function mySelectEvent() {
       basement.coreClasses[i] = listOfCustomers.indexOf(select.value());
-      console.log(basement.coreClasses[i])
+      console.log(basement.coreClasses[i]);
       //put text of the selection on the canvas near start point
     }
   }
@@ -570,4 +579,10 @@ function processClusters(basement, clusters, targetArray, propertySetter) {
     propertySetter(point); // Apply the passed function to set additional properties
     targetArray.push(point);
   }
+}
+
+function assignNodeIds(nodes, basement, prefix) {
+  nodes.forEach((node) => {
+    node.id = `${prefix}-${basement.floor}-${basement.nodeId++}`;
+  });
 }

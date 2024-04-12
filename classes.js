@@ -171,17 +171,6 @@ function createCustomers() {
   console.log("cars: ", customers.length);
 }
 
-// function shuffle(array, inplace = false) {
-//   if (!inplace) {
-//     array = array.slice();
-//   }
-//   for (let i = array.length - 1; i > 0; i--) {
-//     const j = floor(random(i + 1));
-//     [array[i], array[j]] = [array[j], array[i]];
-//   }
-//   return array;
-// }
-
 function bidding() {
   //sale give price
   //resize the img to fit the canvas
@@ -342,21 +331,21 @@ function drawParkingLotsAndPrices() {
     targetLayer.rect(
       x,
       y,
-      lot.horizontal * 2.5 * pixelMultiplier + 2.5 * pixelMultiplier,
-      -lot.horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier
+      lot.horizontal * 2.5 * pixelMultiplier * 2 + 2.5 * pixelMultiplier * 2,
+      -lot.horizontal * 2.5 * pixelMultiplier * 2 + 5 * pixelMultiplier * 2
     );
 
     // Draw the circle for sold lots
     if (realizations[maxSalesIndex][i] === 0) {
       targetLayer.fill(255, 0, 0);
       targetLayer.noStroke();
-      targetLayer.circle(x, y, 2.5 * pixelMultiplier);
+      targetLayer.circle(x, y, 2.5 * pixelMultiplier * 2);
     }
 
     // Draw the price text
     targetLayer.fill(255);
     targetLayer.noStroke();
-    targetLayer.textSize(pixelMultiplier);
+    targetLayer.textSize(pixelMultiplier * 2);
     targetLayer.textAlign(CENTER, CENTER);
     targetLayer.text(round(prices[maxSalesIndex][i] / 10000, 1), x, y);
   });

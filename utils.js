@@ -292,7 +292,7 @@ function saveTableFile() {
 
 function simpleManhattanDistance(start, end) {
   const d = Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
-  return d;
+  return d / 2;
 }
 
 //to iterate pathfinding , clean up the grid and reset the start and end points
