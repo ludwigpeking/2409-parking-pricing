@@ -102,6 +102,7 @@ function normalRandom(mean, stdDev = mean * 0.2) {
 }
 
 function drawCustomerLotLines(maxSalesIndex) {
+  console.log("Drawing customer-lot lines for maxSalesIndex: ", maxSalesIndex);
   let choices = customerLotChoices[maxSalesIndex];
 
   Object.entries(choices).forEach(([customerIndex, lotIndex]) => {
@@ -115,22 +116,51 @@ function drawCustomerLotLines(maxSalesIndex) {
     let endY = lot.y * pixelMultiplier;
 
     // Select the correct textLayer for drawing
-    let targetLayer = basement.textLayer;
+    let targetLayer = basement.customerLinesLayer;
 
     // Set drawing styles for targetLayer
-    targetLayer.stroke(0, 70); // Color for the line
-    targetLayer.strokeWeight(1); // Line thickness
+    targetLayer.stroke(255, 20); // Color for the line
+    targetLayer.strokeWeight(0.5); // Line thickness
     targetLayer.noFill();
 
     // Draw the dashed line on the targetLayer
     dashLine(targetLayer, startX, startY, endX, endY);
 
     // Draw a circle at the end on the targetLayer
-    targetLayer.circle(endX, endY, 2 * pixelMultiplier);
+    // targetLayer.circle(endX, endY, 2 * pixelMultiplier);
 
     // Draw text annotation on the targetLayer
-    targetLayer.fill(0);
-    targetLayer.text(customerIndex, endX, endY + 10);
+    // targetLayer.fill(0);
+    // targetLayer.text(customerIndex, endX, endY + 10);
+  });
+}
+
+function drawGraph(basement) {
+  // Ensure graph is defined
+  if (!basement.graph) {
+    console.log("Graph not initialized.");
+    return;
+  }
+
+  // Draw each node and edges
+  Object.values(basement.graph).forEach((nodeEntry) => {
+    const node = nodeEntry.node;
+    // fill(255, 0, 0); // Red color for node
+    // ellipse(node.x * pixelMultiplier, node.y * pixelMultiplier, 1, 1);
+
+    // Draw edges
+    nodeEntry.edges.forEach((edge) => {
+      const toNode = edge.to;
+      noFill();
+      stroke(0, 255, 0, 150); // Green color for edges
+      strokeWeight(0.2);
+      line(
+        node.x * pixelMultiplier,
+        node.y * pixelMultiplier,
+        toNode.x * pixelMultiplier,
+        toNode.y * pixelMultiplier
+      );
+    });
   });
 }
 

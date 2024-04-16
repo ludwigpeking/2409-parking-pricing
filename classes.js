@@ -42,7 +42,10 @@ class Customer {
         (this.dists[i] +
           basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
         this.meterValue;
+      if (this.dists[i] < 10) this.lotsLoss[i] -= 40 * this.meterValue;
+      if (this.dists[i] < 5) this.lotsLoss[i] -= 40 * this.meterValue;
     }
+
     this.noLotLoss = core.maxMetersLoss * this.meterValue;
     //TODO the second noLotLoss should have a value related to wealth and frequency of car usage, with random distribution
     if (this.carOwnership > random()) {
@@ -66,9 +69,15 @@ function startBuyingSimulation() {
       } else {
         basement.textLayer.clear();
       }
+      if (!basement.customerLinesLayer) {
+        basement.customerLinesLayer = createGraphics(width, height);
+      } else {
+        basement.customerLinesLayer.clear();
+      }
     });
 
     bidding();
+    drawCustomerLotLines(maxSalesIndex);
     //draw texts on textLayer
     // drawDomsValue();
     //save image
@@ -248,7 +257,7 @@ function bidding() {
   }
   //put realized customers into customersUsed,remove from customers
   customersUsed = [];
-  console.log("info check:", customersRealizations);
+  // console.log("info check:", customersRealizations);
   for (let i = 0; i < customersRealizations[maxSalesIndex].length; i++) {
     if (customersRealizations[maxSalesIndex][i] === 1) {
       let originalCustomerIndex = findOriginalCustomerIndex(customersLeft[i]);
@@ -289,7 +298,7 @@ function bidding() {
   printOutput();
   //export the final statistics 总车位数, 总户数, 总售出车位数, 车位售出率, 总销售额, 单车位实现价格 to a csv file, using p5.js table
   saveTableFile();
-  drawCustomerLotLines(maxSalesIndex);
+  // drawCustomerLotLines(maxSalesIndex);
   // saveTable(table, "results.csv");
 }
 

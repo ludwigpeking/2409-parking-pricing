@@ -4,6 +4,7 @@ class Basement {
     this.inputImage = null;
     this.img = null;
     this.textLayer = null;
+    this.customerLinesLayer = null;
     this.translate = { x: 0, y: 0 };
     this.grid = [];
     this.starts = []; // Cores

@@ -1,20 +1,21 @@
+const distanceScale = 0.5; // 0.5 meters per pixel
 // Assuming processImage already populates starts, ends, and possibly walls
 
 // Utility function to calculate Manhattan distance
 function manhattanDistance(node1, node2) {
-  return Math.abs(node1.x - node2.x) + Math.abs(node1.y - node2.y);
+  const dist = Math.abs(node1.x - node2.x) + Math.abs(node1.y - node2.y);
+  return dist * distanceScale;
 }
 
 // Initialize pathfinding nodes and graph
 function initializePathfindingNodes(basement) {
   // Combine all relevant points into a single array for processing
-  const nodes = [
-    ...basement.starts,
-    ...basement.ends,
-    ...basement.transfers,
-    ...basement.detachedStarts,
-  ];
-
+  const nodes = [...basement.starts, ...basement.ends, ...basement.transfers];
+  nodes.forEach((node, index) => {
+    if (!node.id) {
+      node.id = `node-${index}`; // Assign a unique ID if none exists
+    }
+  });
   // Object to hold the graph
   basement.graph = {};
 
@@ -32,60 +33,94 @@ function initializePathfindingNodes(basement) {
       }))
       .filter((item) => item.node !== node) // Exclude self
       .sort((a, b) => a.distance - b.distance) // Sort by distance
-      .slice(0, 15); // Get the closest 15 nodes
+      .slice(0, 15); // Get the closest 15 nodes NOTE!!!!!
 
     // Validate and refine distances considering walls
     distances.forEach((distance) => {
-      if (isValidPath(node, distance.node, basement.grid)) {
-        basement.graph[node.id].edges.push({
-          to: distance.node,
-          cost: distance.distance,
-        });
-      }
+      // if (isValidPath(node, distance.node, basement.grid)) {
+      basement.graph[node.id].edges.push({
+        to: distance.node,
+        cost: distance.distance,
+      });
+      // }
     });
   });
 }
 
-// Example A* search algorithm setup
 function aStarSearch(start, goal, graph) {
-  let openSet = [start];
+  // console.log("A* Search Start");
+  if (!start || !goal) {
+    console.error("Start or goal node is undefined.");
+    return "Failure due to undefined start or goal";
+  }
+
+  if (!graph[start.id] || !graph[goal.id]) {
+    console.error("Start or goal node not in graph.");
+    return "Failure due to start or goal node not present in graph";
+  }
+
+  // console.log("Graph structure:", graph);
+
+  let openSet = new Set([start.id]);
   let cameFrom = new Map();
 
   let gScore = {};
-  gScore[start.id] = 0;
-
   let fScore = {};
+
+  // Initialize scores for all nodes in the graph
+  Object.keys(graph).forEach((nodeId) => {
+    gScore[nodeId] = Infinity;
+    fScore[nodeId] = Infinity;
+  });
+
+  gScore[start.id] = 0;
   fScore[start.id] = manhattanDistance(start, goal);
 
-  while (openSet.length > 0) {
-    let current = openSet.reduce((a, b) =>
-      fScore[a.id] < fScore[b.id] ? a : b
+  while (openSet.size > 0) {
+    let currentId = [...openSet].reduce((a, b) =>
+      fScore[a] < fScore[b] ? a : b
     );
+    let current = graph[currentId].node;
 
-    if (current === goal) {
-      return reconstructPath(cameFrom, current);
+    if (current.id === goal.id) {
+      const path = reconstructPath(cameFrom, current);
+      const distance = pathDistance(path);
+      // console.log("Path found with distance:", distance);
+      return distance;
     }
 
-    openSet = openSet.filter((node) => node !== current);
+    openSet.delete(current.id);
 
-    graph[current.id].edges.forEach((neighbor) => {
-      let tentativeGScore = gScore[current.id] + neighbor.cost;
-      if (tentativeGScore < (gScore[neighbor.node.id] || Infinity)) {
-        cameFrom.set(neighbor.node.id, current);
-        gScore[neighbor.node.id] = tentativeGScore;
-        fScore[neighbor.node.id] =
-          tentativeGScore + manhattanDistance(neighbor.node, goal);
-        if (!openSet.includes(neighbor.node)) {
-          openSet.push(neighbor.node);
+    if (!graph[current.id] || !graph[current.id].edges) {
+      console.error("Current node has no edges:", current);
+      continue;
+    }
+
+    graph[current.id].edges.forEach((edge) => {
+      let neighbor = edge.to;
+      let tentativeGScore = gScore[current.id] + edge.cost;
+
+      if (!gScore.hasOwnProperty(neighbor.id)) {
+        gScore[neighbor.id] = Infinity; // Ensure every node has a gScore
+      }
+
+      if (tentativeGScore < gScore[neighbor.id]) {
+        cameFrom.set(neighbor.id, current);
+        gScore[neighbor.id] = tentativeGScore;
+        fScore[neighbor.id] =
+          tentativeGScore + manhattanDistance(neighbor, goal);
+
+        if (!openSet.has(neighbor.id)) {
+          openSet.add(neighbor.id);
         }
       }
     });
   }
 
+  console.error("Failed to find a path.");
   return "Failure to find path";
 }
 
-// Reconstruct path from A* search
 function reconstructPath(cameFrom, current) {
   let totalPath = [current];
   while (cameFrom.has(current.id)) {
@@ -95,21 +130,12 @@ function reconstructPath(cameFrom, current) {
   return totalPath;
 }
 
-// Example usage
-function setupPathfinding(basement) {
-  processImage(basement, basement.inputImage); // Assuming this populates starts and ends
-  initializePathfindingNodes(basement);
-  // Example: Path from first start to first end
-  let path = aStarSearch(basement.starts[0], basement.ends[0], basement.graph);
-  console.log("Found path:", path);
-}
-
-// Call this function in setup or where appropriate
-// setupPathfinding(basement); // Assuming basement1 is already populated
-
-// Helper function to check if a grid cell is walkable
-function isWalkable(x, y, grid) {
-  return grid[x] && grid[x][y] && grid[x][y].walkable;
+function pathDistance(path) {
+  let distance = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    distance += manhattanDistance(path[i], path[i + 1]);
+  }
+  return distance;
 }
 
 // Bresenham's line algorithm to check path validity
@@ -142,35 +168,4 @@ function isValidPath(from, to, grid) {
     }
   }
   return true;
-}
-
-// Initialize pathfinding nodes and graph with valid paths only
-function initializePathfindingNodes(basement) {
-  const nodes = [...basement.starts, ...basement.ends];
-  basement.graph = {};
-
-  nodes.forEach((node) => {
-    basement.graph[node.id] = {
-      node: node,
-      edges: [],
-    };
-
-    let distances = nodes
-      .map((other) => ({
-        node: other,
-        distance: manhattanDistance(node, other),
-      }))
-      .filter((item) => item.node !== node)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 15);
-
-    distances.forEach((distance) => {
-      if (isValidPath(node, distance.node, basement.grid)) {
-        basement.graph[node.id].edges.push({
-          to: distance.node,
-          cost: distance.distance,
-        });
-      }
-    });
-  });
 }

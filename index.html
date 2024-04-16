@@ -68,6 +68,12 @@
           type="number"
           id="batchChangeNumbers"
           placeholder="输入户数 Input Number"
+        /><br />
+        <label for="drawLinesCheckbox">显示用户选择</label>
+        <input
+          type="checkbox"
+          id="drawLinesCheckbox"
+          name="drawLinesCheckbox"
         />
       </div>
       <div>
@@ -91,10 +97,8 @@
           .getElementById("batchChangeCoreClasses")
           .addEventListener("change", function () {
             const newValue = this.value;
-            // Update all core class selects
-            const selects = document.querySelectorAll(
-              "select[id^='selectIdForBasement']"
-            );
+            // Update all core class selects for starts only
+            const selects = document.querySelectorAll("select[id*='Start']"); // This assumes that IDs for start-related selects contain 'Start'
             selects.forEach((select) => {
               select.value = newValue;
               // Trigger change event if needed
@@ -143,6 +147,15 @@
             setBasementState(state.basement2);
           };
           fileReader.readAsText(this.files[0]);
+        });
+      });
+      let drawCustomerLotLineBool = false;
+      document.addEventListener("DOMContentLoaded", function () {
+        const drawLinesCheckbox = document.getElementById("drawLinesCheckbox");
+
+        drawLinesCheckbox.addEventListener("change", function () {
+          drawCustomerLotLineBool = this.checked;
+          console.log("Draw customer lot lines:", drawCustomerLotLineBool); // For debugging
         });
       });
     </script>

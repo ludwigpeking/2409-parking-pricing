@@ -16,6 +16,7 @@ let dragging = false;
 function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
   let canvas = createCanvas(1200 * pixelMultiplier, 800 * pixelMultiplier); // Start with a default size
+
   canvas.parent("canvasContainer");
   background(220); // Set a default background
   // cursor("zoom-in");
@@ -73,16 +74,13 @@ function draw() {
 
   // Display the images if they are loaded
 
-  translate(width / 2, height / 2); // Center the zoom effect
-  scale(zoom);
-  translate(-width / 2 + offsetX, -height / 2 + offsetY);
-
   if (basement1.img) {
     image(basement1.img, 0, 0);
   }
   if (basement1.textLayer) {
     image(basement1.textLayer, 0, 0); // Render basement1's textLayer
   }
+
   if (basement2.img) {
     // Adjust the position of the second image
     basement2.translate.x = basement1.inputImage
@@ -93,6 +91,21 @@ function draw() {
   if (basement2.textLayer) {
     image(basement2.textLayer, basement2.translate.x * pixelMultiplier, 0);
   }
+  if (basement1.customerLinesLayer) {
+    drawCustomerLotLines(maxSalesIndex);
+  }
+  if (drawCustomerLotLineBool) {
+    image(basement1.customerLinesLayer, 0, 0);
+    if (basement2.customerLinesLayer) {
+    image(
+      basement2.customerLinesLayer,
+      basement2.translate.x * pixelMultiplier,
+      0
+    );}
+  }
+
+  // if (basement1.graph) drawGraph(basement1);
+  // if (basement2.graph) drawGraph(basement2);
 }
 
 function processImage(basement, inputImage) {
@@ -201,7 +214,10 @@ function processImage(basement, inputImage) {
     const start = basement.starts[i];
     for (let j = 0; j < basement.ends.length; j++) {
       const end = basement.ends[j];
-      const dist = simpleManhattanDistance(start, end); // Manhattan distance, Pathfinding not implemented
+      // const dist = manhattanDistance(start, end);
+      // console.log("start astar", i, j, start, end, basement.graph);
+      const dist = aStarSearch(start, end, basement.graph);
+      // console.log("dist = ", dist, ", exit astar");
       start.dists.push(dist);
     }
   }
@@ -211,7 +227,7 @@ function processImage(basement, inputImage) {
     const detachedStart = basement.detachedStarts[i];
     for (let j = 0; j < basement.transfers.length; j++) {
       const transfer = basement.transfers[j];
-      const distToTransfer = simpleManhattanDistance(detachedStart, transfer);
+      const distToTransfer = manhattanDistance(detachedStart, transfer);
       detachedStart.distsToTransfer.push(distToTransfer);
     }
   }
@@ -220,7 +236,7 @@ function processImage(basement, inputImage) {
     const transfer = basement.transfers[i];
     for (let j = 0; j < basement.ends.length; j++) {
       const end = basement.ends[j];
-      const dist = simpleManhattanDistance(transfer, end);
+      const dist = aStarSearch(transfer, end, basement.graph);
       transfer.dists.push(dist);
     }
   }
@@ -252,15 +268,10 @@ function processImage(basement, inputImage) {
     start.distsToExits = [];
     for (let j = 0; j < basement.exits.length; j++) {
       const exit = basement.exits[j];
-      const dist = simpleManhattanDistance(start, exit);
+      const dist = manhattanDistance(start, exit);
       start.distsToExits.push(dist);
     }
   }
-
-  assignNodeIds(basement.starts, basement, "start");
-  assignNodeIds(basement.ends, basement, "end");
-  assignNodeIds(basement.transfers, basement, "transfer");
-  assignNodeIds(basement.detachedStarts, basement, "detachedStart");
 
   const canvasPosition = getPositionOfCanvas();
   //add selection doms to the exit points in the canvas
@@ -295,7 +306,12 @@ function processImage(basement, inputImage) {
 
     function mySelectEvent() {
       basement.exitClasses[i] = listOfExits.indexOf(select.value());
+      //change the value in the other basement at the same time
+      const otherBasement = basement.floor === 1 ? basement2 : basement1;
+      otherBasement.exitClasses[i] = listOfExits.indexOf(select.value());
+
       exit.metersLoss = 80 * 5 * (1 + basement.exitClasses[i]);
+      otherBasement.exits[i].metersLoss = exit.metersLoss;
       //put text of the selection on the canvas near the exit point
     }
   }
@@ -579,10 +595,4 @@ function processClusters(basement, clusters, targetArray, propertySetter) {
     propertySetter(point); // Apply the passed function to set additional properties
     targetArray.push(point);
   }
-}
-
-function assignNodeIds(nodes, basement, prefix) {
-  nodes.forEach((node) => {
-    node.id = `${prefix}-${basement.floor}-${basement.nodeId++}`;
-  });
 }
