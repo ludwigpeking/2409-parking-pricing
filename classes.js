@@ -317,6 +317,11 @@ function drawParkingLotsAndPrices() {
   basement1.textLayer.clear();
   basement2.textLayer.clear();
 
+  const lowestPrice = min(prices[maxSalesIndex]);
+  const highestPrice = max(prices[maxSalesIndex]);
+  const lowestColor = color(50, 0, 0);
+  const highestColor = color(255, 0, 0);
+
   combinedEnds.forEach((lot, i) => {
     // Select the correct textLayer based on the basement identifier
     let targetLayer =
@@ -327,10 +332,17 @@ function drawParkingLotsAndPrices() {
     let y = lot.y * pixelMultiplier;
 
     // Set drawing styles for the targetLayer
+    // targetLayer.fill(
+    //   (prices[maxSalesIndex][i] * 10) / 10000,
+    //   255 - (prices[maxSalesIndex][i] * 10) / 10000,
+    //   255
+    // );
     targetLayer.fill(
-      (prices[maxSalesIndex][i] * 10) / 10000,
-      255 - (prices[maxSalesIndex][i] * 10) / 10000,
-      255
+      lerpColor(
+        lowestColor,
+        highestColor,
+        (prices[maxSalesIndex][i] - lowestPrice) / (highestPrice - lowestPrice)
+      )
     );
     targetLayer.strokeWeight(0.5);
     targetLayer.stroke(255, 100);
@@ -346,7 +358,7 @@ function drawParkingLotsAndPrices() {
 
     // Draw the circle for sold lots
     if (realizations[maxSalesIndex][i] === 0) {
-      targetLayer.fill(255, 0, 0);
+      targetLayer.fill(0, 0, 255);
       targetLayer.noStroke();
       targetLayer.circle(x, y, 2.5 * pixelMultiplier * 2);
     }

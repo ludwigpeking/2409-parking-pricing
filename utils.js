@@ -102,7 +102,7 @@ function normalRandom(mean, stdDev = mean * 0.2) {
 }
 
 function drawCustomerLotLines(maxSalesIndex) {
-  console.log("Drawing customer-lot lines for maxSalesIndex: ", maxSalesIndex);
+  // console.log("Drawing customer-lot lines for maxSalesIndex: ", maxSalesIndex);
   let choices = customerLotChoices[maxSalesIndex];
 
   Object.entries(choices).forEach(([customerIndex, lotIndex]) => {
