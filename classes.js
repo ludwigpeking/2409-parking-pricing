@@ -50,9 +50,21 @@ class Customer {
     //TODO the second noLotLoss should have a value related to wealth and frequency of car usage, with random distribution
     if (this.carOwnership > random()) {
       this.firstCar = true;
+      //first car is a mini car
+      if (this.carOwnership < random() - 0.15) {
+        this.firstCarMini = true;
+      }
     }
     if (this.carOwnership > 1 + random()) {
       this.secondCar = true;
+      //second car is a mini car
+      if (this.carOwnership < random() + 0.55) {
+        this.secondCarMini = true;
+      }
+      this.secondCarUsage = max(
+        this.carOwnership / 2 + 0.2 - random() * 0.4,
+        0
+      );
     }
   }
 }
@@ -155,9 +167,15 @@ function createCustomers() {
     basement1.starts[i].maxMetersLoss = minMeterLoss;
   }
   customers = [];
+  const customerFirstCar = [];
+  const customerSecondCar = [];
   // create customers
   householdNumbers = 0;
   customersTotalIncome = 0;
+  let customerFirstCarCount = 0;
+  let customerSecondCarCount = 0;
+  let customerFirstCarMiniCount = 0;
+  let customerSecondCarMiniCount = 0;
   for (let i = 0; i < basement1.starts.length; i++) {
     for (let j = 0; j < basement1.coreHouseholdNumbers[i]; j++) {
       householdNumbers++;
@@ -168,16 +186,40 @@ function createCustomers() {
       );
       customersTotalIncome += customer.income;
       if (customer.firstCar) {
-        customers.push(customer);
+        customerFirstCarCount++;
+        customerFirstCar.push(customer);
       }
       if (customer.secondCar) {
-        customers.push(customer);
+        customerSecondCarCount++;
+        customerSecondCar.push(customer);
+      }
+      if (customer.firstCarMini) {
+        customerFirstCarMiniCount++;
+      }
+      if (customer.secondCarMini) {
+        customerSecondCarMiniCount++;
       }
     }
   }
+
   //shuffle the customers
-  shuffle(customers, true); //p5.js shuffle
-  console.log("cars: ", customers.length);
+  shuffle(customerFirstCar, true); //p5.js shuffle
+  shuffle(customerSecondCar, true); //p5.js shuffle
+  //combine the two arrays into customers
+  customers = customerFirstCar.concat(customerSecondCar);
+  console.log(
+    "householdNumbers: ",
+    householdNumbers,
+    "first cars: ",
+    customerFirstCarCount,
+    "first mini cars: ",
+    customerFirstCarMiniCount,
+    "second cars: ",
+    customerSecondCarCount,
+    "second mini cars: ",
+    customerSecondCarMiniCount
+  );
+  //draw a customer carOwnership histogram
 }
 
 function bidding() {

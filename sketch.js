@@ -97,13 +97,14 @@ function draw() {
   if (drawCustomerLotLineBool) {
     image(basement1.customerLinesLayer, 0, 0);
     if (basement2.customerLinesLayer) {
-    image(
-      basement2.customerLinesLayer,
-      basement2.translate.x * pixelMultiplier,
-      0
-    );}
+      image(
+        basement2.customerLinesLayer,
+        basement2.translate.x * pixelMultiplier,
+        0
+      );
+    }
   }
-
+  //// to check graph nodes
   // if (basement1.graph) drawGraph(basement1);
   // if (basement2.graph) drawGraph(basement2);
 }
@@ -171,13 +172,21 @@ function processImage(basement, inputImage) {
   basement.detachedStarts = [];
   basement.transfers = [];
   basement.exits = [];
+  //TODO: classify the ends into normal parking lots (0,0,255), mini parking lots (50,0,255), double parking lots(0,50,255),
   for (let i = 0; i < basement.clustersBlue.length; i++) {
     const cluster = basement.clustersBlue[i];
     const clusterCenter = findClusterCenter(cluster);
     const endPoint = basement.grid[clusterCenter.x][clusterCenter.y];
     endPoint.end = true;
+    endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot
+    endPoint.xSize = findClusterSize(cluster).xSize;
+    if (endPoint.xSize < 8) {
+      endPoint.small = true;
+    }
+    if (endPoint.xSize > 15) {
+      endPoint.double = true;
+    }
     basement.ends.push(endPoint);
-    endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot diretion
   }
   basement.openLots = basement.ends.slice();
 
@@ -411,7 +420,6 @@ function makeGrid(basement, inputImage) {
     basement.grid[i] = [];
     for (let j = 0; j < inputImage.height; j++) {
       let c = inputImage.get(i, j); // Get color of each pixel
-
       const cellProps = determineCellProps(c);
 
       basement.grid[i].push({
@@ -435,39 +443,78 @@ function makeGrid(basement, inputImage) {
   basement.img = offscreen;
   return basement.grid;
 }
-
 function determineCellProps(color) {
   const [r, g, b] = color;
   const baseProps = {
     walkable: true,
-    bluePoint: false,
-    redPoint: false,
-    yellowPoint: false,
-    greenPoint: false,
-    cyanPoint: false,
+    bluePoint: false, // parking (<200,<200,255) basic blue indicator
+    regularColorPoint: false, // regular parking
+    miniColorPoint: false, // mini parking
+    doubleColorPoint: false, // double parking
+    narrowColorPoint: false, // narrow parking,
+    redPoint: false, // core
+    yellowPoint: false, // detached core
+    greenPoint: false, // transfer
+    cyanPoint: false, // exit
     color: [150, 150, 150], // Default color (grey)
   };
 
+  // Non-walkable (black)
   if (r < 100 && g < 100 && b < 100) {
-    return { ...baseProps, walkable: false, color: [0, 0, 0] }; // Black
-  } else if (r - g > 100 && r - b > 100) {
-    return {
-      ...baseProps,
-      redPoint: true,
-      color: [255, 0, 0],
-      level: round(g / 25),
-    }; // Red
-  } else if (r < 100 && g < 100 && b > 200) {
-    return { ...baseProps, bluePoint: true, color: [0, 0, 255] }; // Blue
-  } else if (r > 200 && g > 200 && b < 50) {
-    return { ...baseProps, yellowPoint: true, color: [255, 255, 0] }; // Yellow
-  } else if (r < 50 && g > 200 && b < 50) {
-    return { ...baseProps, greenPoint: true, color: [0, 255, 0] }; // Green
-  } else if (r < 50 && g > 200 && b > 200) {
-    return { ...baseProps, cyanPoint: true, color: [0, 255, 255] }; // Cyan
+    baseProps.walkable = false;
+    baseProps.color = [0, 0, 0]; //black walls
   }
 
-  return baseProps; // Default properties for other colors
+  // Red
+  if (r > 200 && g < 50 && b < 50) {
+    baseProps.redPoint = true; //[255,0,0]
+    baseProps.color = [255, 0, 0];
+  }
+
+  // Yellow
+  if (r > 200 && g > 200 && b < 50) {
+    baseProps.yellowPoint = true; //[255,255,0]
+    baseProps.color = [255, 255, 0];
+  }
+
+  // Green
+  if (r < 50 && g > 200 && b < 50) {
+    baseProps.greenPoint = true; //[0,255,0]
+    baseProps.color = [0, 255, 0];
+  }
+
+  // Cyan
+  if (r < 50 && g > 200 && b > 200) {
+    baseProps.cyanPoint = true; //[0,255,255]
+    baseProps.color = [0, 255, 255];
+  }
+
+  //blue
+  if (r < 200 && g < 200 && b > 200) {
+    baseProps.bluePoint = true;
+    baseProps.color[0] = 0;
+    baseProps.color[2] = 255;
+    if (g < 50) {
+      baseProps.regularColorPoint = true; //[<200,<50,255]
+      baseProps.color[1] = 0;
+    }
+    if (g >= 50 && g < 125) {
+      baseProps.miniColorPoint = true; //[<200,80,255]
+      baseProps.color[1] = 80;
+    }
+    if (g >= 125) {
+      baseProps.doubleColorPoint = true; //[<200,160,255]
+      baseProps.color[1] = 160;
+    }
+  }
+
+  // Narrow Parking: Check first because it can overlap with others
+  if (r > 100 && r < 200 && g < 200 && b > 200) {
+    baseProps.narrowColorPoint = true; //[150, 0-200, 255]
+    baseProps.color[0] = 150;
+  }
+
+  return baseProps;
 }
 
 function findCluster(grid, tile, cluster, color) {
