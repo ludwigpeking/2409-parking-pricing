@@ -21,6 +21,14 @@ function setup() {
   background(220); // Set a default background
   // cursor("zoom-in");
   // Set up file input listeners
+  const defaultBasement1Image = "./image/test.png"; // Replace with actual path or URL
+  loadImage(defaultBasement1Image, function (loadedImg) {
+    basement1.inputImage = loadedImg;
+    processImage(basement1, basement1.inputImage);
+    combineEnds(basement1, basement2);
+    mergeCommonStarts(basement1, basement2);
+    // Additional setup if needed
+  });
   document
     .getElementById("basement1Input")
     .addEventListener("change", function (e) {
@@ -179,11 +187,12 @@ function processImage(basement, inputImage) {
     const endPoint = basement.grid[clusterCenter.x][clusterCenter.y];
     endPoint.end = true;
     endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot
+    endPoint.angle = findClusterSize(cluster).angle;
     endPoint.xSize = findClusterSize(cluster).xSize;
     if (endPoint.xSize < 8) {
       endPoint.small = true;
     }
-    if (endPoint.xSize > 15) {
+    if (endPoint.xSize > 13) {
       endPoint.double = true;
     }
     basement.ends.push(endPoint);
@@ -533,33 +542,52 @@ function findCluster(grid, tile, cluster, color) {
 //calculate the average expands of the clusters in x and y directions
 //NOT YET USED
 function findClusterSize(cluster) {
-  let xMin = 100000;
-  let xMax = 0;
-  let yMin = 100000;
-  let yMax = 0;
-  for (let i = 0; i < cluster.length; i++) {
-    const tile = cluster[i];
-    if (tile.x < xMin) {
-      xMin = tile.x;
-    }
-    if (tile.x > xMax) {
-      xMax = tile.x;
-    }
-    if (tile.y < yMin) {
-      yMin = tile.y;
-    }
-    if (tile.y > yMax) {
-      yMax = tile.y;
-    }
-  }
+  let xSum = 0,
+    ySum = 0;
+  let xMin = Infinity,
+    xMax = 0,
+    yMin = Infinity,
+    yMax = 0;
+
+  // First, calculate sums and min/max to find centroid and size
+  cluster.forEach((tile) => {
+    xSum += tile.x;
+    ySum += tile.y;
+    if (tile.x < xMin) xMin = tile.x;
+    if (tile.x > xMax) xMax = tile.x;
+    if (tile.y < yMin) yMin = tile.y;
+    if (tile.y > yMax) yMax = tile.y;
+  });
+
+  const n = cluster.length;
+  const xMean = xSum / n;
+  const yMean = ySum / n;
   const xSize = xMax - xMin;
   const ySize = yMax - yMin;
-  //longer side is x, shorter side is y
-  if (xSize > ySize) {
-    return { xSize, ySize, horizontal: true };
-  } else {
-    return { xSize: ySize, ySize: xSize, horizontal: false };
-  }
+
+  // Compute covariances
+  let sXX = 0,
+    sYY = 0,
+    sXY = 0;
+  cluster.forEach((tile) => {
+    sXX += (tile.x - xMean) ** 2;
+    sYY += (tile.y - yMean) ** 2;
+    sXY += (tile.x - xMean) * (tile.y - yMean);
+  });
+
+  sXX /= n;
+  sYY /= n;
+  sXY /= n;
+
+  // Calculate the angle in radians
+  const angle = 0.5 * Math.atan2(2 * sXY, sXX - sYY);
+
+  return {
+    xSize: xSize > ySize ? xSize : ySize,
+    ySize: xSize > ySize ? ySize : xSize,
+    horizontal: xSize > ySize,
+    angle: angle, // Convert radians to degrees
+  };
 }
 
 //draw all the doms' value on the textLayer at the doms' position
