@@ -105,34 +105,60 @@ function drawCustomerLotLines(maxSalesIndex) {
   // console.log("Drawing customer-lot lines for maxSalesIndex: ", maxSalesIndex);
   let choices = customerLotChoices[maxSalesIndex];
 
-  Object.entries(choices).forEach(([customerIndex, lotIndex]) => {
-    let customer = customers[customerIndex];
-    let lot = combinedEnds[lotIndex];
-    let basement = lot.basement === 1 ? basement1 : basement2; // Determine the correct basement
+  for (let i = 0; i < choices.length; i++) {
+    for (let j = 0; j < choices[i].length; j++) {
+      let lotIndex = choices[i][j];
+      if (lotIndex != -1) {
+        let lot = combinedEnds[lotIndex];
+        let basement = lot.basement === 1 ? basement1 : basement2; // Determine the correct basement
+        let customer = customers[i];
+        let startX = customer.core.x * pixelMultiplier;
+        let startY = customer.core.y * pixelMultiplier;
+        let endX = lot.x * pixelMultiplier;
+        let endY = lot.y * pixelMultiplier;
 
-    let startX = customer.core.x * pixelMultiplier;
-    let startY = customer.core.y * pixelMultiplier;
-    let endX = lot.x * pixelMultiplier;
-    let endY = lot.y * pixelMultiplier;
+        // Select the correct textLayer for drawing
+        let targetLayer = basement.customerLinesLayer;
 
-    // Select the correct textLayer for drawing
-    let targetLayer = basement.customerLinesLayer;
+        // Set drawing styles for targetLayer
+        targetLayer.stroke(255, 20); // Color for the line
+        targetLayer.strokeWeight(0.5); // Line thickness
+        targetLayer.noFill();
 
-    // Set drawing styles for targetLayer
-    targetLayer.stroke(255, 20); // Color for the line
-    targetLayer.strokeWeight(0.5); // Line thickness
-    targetLayer.noFill();
+        // Draw the dashed line on the targetLayer
+        dashLine(targetLayer, startX, startY, endX, endY);
+      }
+    }
+  }
 
-    // Draw the dashed line on the targetLayer
-    dashLine(targetLayer, startX, startY, endX, endY);
+  //   Object.entries(choices).forEach(([customerIndex, lotIndex]) => {
+  //     let customer = customers[customerIndex];
+  //     let lot = combinedEnds[lotIndex];
+  //     let basement = lot.basement === 1 ? basement1 : basement2; // Determine the correct basement
 
-    // Draw a circle at the end on the targetLayer
-    // targetLayer.circle(endX, endY, 2 * pixelMultiplier);
+  //     let startX = customer.core.x * pixelMultiplier;
+  //     let startY = customer.core.y * pixelMultiplier;
+  //     let endX = lot.x * pixelMultiplier;
+  //     let endY = lot.y * pixelMultiplier;
 
-    // Draw text annotation on the targetLayer
-    // targetLayer.fill(0);
-    // targetLayer.text(customerIndex, endX, endY + 10);
-  });
+  //     // Select the correct textLayer for drawing
+  //     let targetLayer = basement.customerLinesLayer;
+
+  //     // Set drawing styles for targetLayer
+  //     targetLayer.stroke(255, 20); // Color for the line
+  //     targetLayer.strokeWeight(0.5); // Line thickness
+  //     targetLayer.noFill();
+
+  //     // Draw the dashed line on the targetLayer
+  //     dashLine(targetLayer, startX, startY, endX, endY);
+
+  //     // Draw a circle at the end on the targetLayer
+  //     // targetLayer.circle(endX, endY, 2 * pixelMultiplier);
+
+  //     // Draw text annotation on the targetLayer
+  //     // targetLayer.fill(0);
+  //     // targetLayer.text(customerIndex, endX, endY + 10);
+  //   });
 }
 
 function drawGraph(basement) {

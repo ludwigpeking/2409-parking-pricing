@@ -189,7 +189,7 @@ function processImage(basement, inputImage) {
     endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot
     endPoint.angle = findClusterSize(cluster).angle;
     endPoint.xSize = findClusterSize(cluster).xSize;
-    if (endPoint.xSize < 8) {
+    if (endPoint.xSize < 5) {
       endPoint.small = true;
     }
     if (endPoint.xSize > 13) {

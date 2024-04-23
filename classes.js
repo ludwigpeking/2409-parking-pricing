@@ -32,16 +32,15 @@ class Customer {
       ((1.5 ** (log(this.income / baselineIncome) / log(2)) * 12000) /
         this.income);
 
-    //TODO the second noLotLoss should have a value related to wealth and frequency of car usage, with random distribution
     this.firstCar = false;
     if (this.carOwnership > random()) {
       this.firstCar = true;
       //first car is a mini car
-      if (this.carOwnership < random() - 0.05) {
+      if (this.carOwnership < random() * 2 - 1) {
         this.firstCarMini = true;
       }
     }
-    if (this.carOwnership > 1 + random() || this.secondCar === 1) {
+    if (this.carOwnership > 1 + random() * 1.1 - 0.2) {
       this.twoCars = true;
       this.doubleAcceptance = false;
       //second car is a mini car
@@ -52,6 +51,7 @@ class Customer {
         this.carOwnership / 2 + 0.2 - random() * 0.4,
         0
       );
+      console.log("second car usage: ", this.secondCarUsage);
     }
     //the customer can accept a double lot
     if (this.secondCarUsage > random() + 0.4) {
@@ -62,20 +62,22 @@ class Customer {
     this.dists = this.core.dists;
     this.lotsLoss = [];
     this.meterValue = (this.income / 120000 / 80) * 600 * 12;
-
-    if (this.secondCar === 1) {
+    this.lotsLossDouble = new Array(combinedEnds.length).fill(Infinity);
+    if (this.twoCars) {
       this.meterValueSecond = this.meterValue * this.secondCarUsage;
       this.lotsLossSecond = [];
       if (this.doubleAcceptance) {
         this.meterValueDouble = this.meterValue + this.meterValueSecond;
-        this.lotsLossDouble = []; //should only target the double lots
+        //should only target the double lots
       }
     }
+    //iterate through all the parking lots
     for (let i = 0; i < combinedEnds.length; i++) {
+      //first car loss
       this.lotsLoss[i] =
         (this.dists[i] +
           basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
-        this.meterValue;
+        this.meterValue; //B2 penalty
       if (this.dists[i] < 10) this.lotsLoss[i] -= 40 * this.meterValue;
       if (this.dists[i] < 5) this.lotsLoss[i] -= 40 * this.meterValue;
       if (combinedEnds[i].small) {
@@ -85,11 +87,12 @@ class Customer {
       if (combinedEnds[i].narrowColorPoint)
         this.lotsLoss[i] += 80 * this.meterValue;
 
-      if (this.secondCar === 1) {
+      //second car loss
+      if (this.twoCars) {
         this.lotsLossSecond[i] =
           (this.dists[i] +
             basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
-          this.meterValueSecond;
+          this.meterValueSecond; //B2 penalty
         if (this.dists[i] < 10)
           this.lotsLossSecond[i] -= 40 * this.meterValueSecond;
         if (this.dists[i] < 5)
@@ -101,11 +104,14 @@ class Customer {
         if (combinedEnds[i].narrowColorPoint)
           this.lotsLossSecond[i] += 100 * this.meterValueSecond;
         //
+
         if (this.doubleAcceptance && combinedEnds[i].double) {
+          console.log("double lot involved");
           this.lotsLossDouble[i] =
             (this.dists[i] +
               basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
-            this.meterValueDouble;
+              this.meterValueDouble -
+            40 * this.meterValueDouble;
           if (this.dists[i] < 10)
             this.lotsLossDouble[i] -= 40 * this.meterValueDouble;
           if (this.dists[i] < 5)
@@ -113,14 +119,12 @@ class Customer {
           if (combinedEnds[i].narrowColorPoint)
             this.lotsLossDouble[i] += 100 * this.meterValueDouble;
         }
-        if (this.doubleAcceptance && !combinedEnds[i].double) {
-          this.lotsLossDouble[i] = Infinity;
-        }
       }
     }
 
     this.noLotLoss = core.maxMetersLoss * this.meterValue;
     this.noLotLossSecond = core.maxMetersLoss * this.meterValueSecond;
+    this.noLotLossDouble = core.maxMetersLoss * this.meterValueDouble;
   }
   // pickSeparateLot() {}
   // pickDoubleLot() {}
@@ -153,7 +157,7 @@ function startBuyingSimulation() {
     //save image
     // saveCanvas("myCanvas", "jpg");
   } else {
-    alert("The sales control is active!");
+    alert("The sales control is active!"); //not implemented yet.
   }
 }
 
@@ -225,8 +229,8 @@ function createCustomers() {
     basement1.starts[i].maxMetersLoss = minMeterLoss;
   }
   customers = [];
-  const customerFirstCar = [];
-  const customerSecondCar = [];
+  // const customerFirstCar = [];
+  // const customerSecondCar = [];
   // create customers
   householdNumbers = 0;
   customersTotalIncome = 0;
@@ -234,6 +238,7 @@ function createCustomers() {
   let customerSecondCarCount = 0;
   let customerFirstCarMiniCount = 0;
   let customerSecondCarMiniCount = 0;
+  let customerDoubleAcceptanceCount = 0;
   for (let i = 0; i < basement1.starts.length; i++) {
     for (let j = 0; j < basement1.coreHouseholdNumbers[i]; j++) {
       householdNumbers++;
@@ -248,12 +253,12 @@ function createCustomers() {
         // customerFirstCar.push(customer);
         customers.push(customer);
       }
-      if (customer.secondCar) {
+      if (customer.twoCars) {
         customerSecondCarCount++;
         // const secondBuy = new Customer(basement1.starts[i],
         //   basement1.coreClasses[i], 1);
         // customerSecondCar.push(secondBuy);
-        customerSecondCar.push(customer);
+        // customerSecondCar.push(customer);
       }
       if (customer.firstCarMini) {
         customerFirstCarMiniCount++;
@@ -261,13 +266,16 @@ function createCustomers() {
       if (customer.secondCarMini) {
         customerSecondCarMiniCount++;
       }
+      if (customer.doubleAcceptance) {
+        customerDoubleAcceptanceCount++;
+      }
     }
   }
 
   //shuffle the customers
   // shuffle(customerFirstCar, true); //p5.js shuffle
   shuffle(customers, true); //p5.js shuffle
-  shuffle(customerSecondCar, true); //p5.js shuffle
+  // shuffle(customerSecondCar, true); //p5.js shuffle
   //combine the two arrays into customers
   // customers = customerFirstCar.concat(customerSecondCar);
   console.log(
@@ -280,7 +288,9 @@ function createCustomers() {
     "second cars: ",
     customerSecondCarCount,
     "second mini cars: ",
-    customerSecondCarMiniCount
+    customerSecondCarMiniCount,
+    "double acceptance: ",
+    customerDoubleAcceptanceCount
   );
   //draw a customer carOwnership histogram
 }
@@ -302,15 +312,25 @@ function bidding() {
   customerLotChoices = []; // Reset for a new simulation run
 
   while (Round < 3000) {
-    let roundChoices = {}; // Initialize an empty object for this round
-    customersRealizations.push(new Array(customersLeft.length).fill([0, 0]));
+    let roundChoices = []; // Initialize an empty object for this round
+    // customersRealizations.push(new Array(customersLeft.length).fill([0, 0]));//seems problematic
+    customersRealizations.push([]);
+    for (let i = 0; i < customersLeft.length; i++) {
+      roundChoices.push([-1, -1]);
+      if (customersLeft[i].twoCars) {
+        customersRealizations[Round].push([0, 0]);
+      } else {
+        customersRealizations[Round].push([0, 2]); //2 means no demand, 1 means demand fulfilled, 0 means demand not fulfilled
+      }
+    }
+
     totalSales.push(0);
     let availability = new Array(openLots.length).fill(1);
-    //TODO: from here, the behavior of customers to pick one lot or two or one double lot should be implemented
     for (let i = 0; i < customersLeft.length; i++) {
       let customer = customersLeft[i];
+
+      //one customer one car -
       if (!customer.twoCars) {
-        //one customer one car
         let loss = new Array(openLots.length).fill(customer.noLotLoss);
         let minLoss = customer.noLotLoss;
         let chosenLotIndex = -1; // Default to -1, indicating no lot chosen yet
@@ -324,33 +344,135 @@ function bidding() {
             }
           }
         }
-      }
-
-      if (customer.twoCars && !customer.doubleAcceptance) {
-        //make two picks independently
-      }
-
-      if (customer.twoCars && customer.doubleAcceptance) {
-        //compare the loss between picking two lots and picking one double lot
-      }
-
-      let loss = new Array(openLots.length).fill(customer.noLotLoss);
-      let minLoss = customer.noLotLoss;
-      let chosenLotIndex = -1; // Default to -1, indicating no lot chosen yet
-      for (let j = 0; j < openLots.length; j++) {
-        if (availability[j] === 1) {
-          loss[j] = customer.lotsLoss[j] + prices[Round][j];
-          if (loss[j] < minLoss) {
-            customersRealizations[Round][i][0] = 1;
-            minLoss = loss[j];
-            chosenLotIndex = j;
+        if (chosenLotIndex !== -1) {
+          availability[chosenLotIndex] = 0;
+          totalSales[Round] += prices[Round][chosenLotIndex];
+          roundChoices[i][0] = chosenLotIndex; // Record the customer's choice
+        }
+      } else if (
+        //two car customers make two picks independently
+        //first pick
+        !customer.doubleAcceptance
+      ) {
+        let loss = new Array(openLots.length).fill(customer.noLotLoss);
+        let minLoss = customer.noLotLoss;
+        let chosenLotIndex = -1; // Default to -1, indicating no lot chosen yet
+        for (let j = 0; j < openLots.length; j++) {
+          if (availability[j] === 1) {
+            loss[j] = customer.lotsLoss[j] + prices[Round][j];
+            if (loss[j] < minLoss) {
+              customersRealizations[Round][i][0] = 1;
+              minLoss = loss[j];
+              chosenLotIndex = j;
+            }
           }
         }
+        if (chosenLotIndex !== -1) {
+          availability[chosenLotIndex] = 0;
+          totalSales[Round] += prices[Round][chosenLotIndex];
+          roundChoices[i][0] = chosenLotIndex;
+        }
+
+        //second pick
+        let LossSecond = new Array(openLots.length).fill(
+          customer.noLotLossSecond
+        );
+        let minLossSecond = customer.noLotLossSecond;
+        let chosenLotIndexSecond = -1;
+        for (let j = 0; j < openLots.length; j++) {
+          if (availability[j] === 1) {
+            LossSecond[j] = customer.lotsLossSecond[j] + prices[Round][j];
+            if (LossSecond[j] < minLossSecond) {
+              customersRealizations[Round][i][1] = 1;
+              minLossSecond = LossSecond[j];
+              chosenLotIndexSecond = j;
+            }
+          }
+        }
+        if (chosenLotIndexSecond !== -1) {
+          availability[chosenLotIndexSecond] = 0;
+          totalSales[Round] += prices[Round][chosenLotIndexSecond];
+          roundChoices[i][1] = chosenLotIndexSecond; // Record the customer's choice
+        }
       }
-      if (chosenLotIndex !== -1) {
-        availability[chosenLotIndex] = 0;
-        totalSales[Round] += prices[Round][chosenLotIndex];
-        roundChoices[i] = chosenLotIndex; // Record the customer's choice
+
+      // if (customer.twoCars && customer.doubleAcceptance) {
+      else {
+        //compare the loss between picking two lots and picking one double lot
+        //first car
+        let loss = new Array(openLots.length).fill(customer.noLotLoss);
+        let minLoss = customer.noLotLoss;
+        let chosenLotIndex = -1; // Default to -1, indicating no lot chosen yet
+        for (let j = 0; j < openLots.length; j++) {
+          if (availability[j] === 1) {
+            loss[j] = customer.lotsLoss[j] + prices[Round][j];
+            if (loss[j] < minLoss) {
+              // customersRealizations[Round][i][0] = 1;
+              minLoss = loss[j];
+              chosenLotIndex = j;
+            }
+          }
+        }
+        //second car
+        let LossSecond = new Array(openLots.length).fill(
+          customer.noLotLossSecond
+        );
+        let minLossSecond = customer.noLotLossSecond;
+        let chosenLotIndexSecond = -1;
+        for (let j = 0; j < openLots.length; j++) {
+          if (availability[j] === 1) {
+            LossSecond[j] = customer.lotsLossSecond[j] + prices[Round][j];
+            if (LossSecond[j] < minLossSecond) {
+              // customersRealizations[Round][i][1] = 1;
+              minLossSecond = LossSecond[j];
+              chosenLotIndexSecond = j;
+            }
+          }
+        }
+        const totalLoss = minLoss + minLossSecond;
+
+        //double lot
+
+        let lossDouble = new Array(openLots.length).fill(
+          customer.noLotLossDouble
+        );
+        let minLossDouble = customer.noLotLossDouble;
+        let chosenLotIndexDouble = -1;
+        for (let j = 0; j < openLots.length; j++) {
+          if (availability[j] === 1 && openLots[j].double) {
+            lossDouble[j] = customer.lotsLossDouble[j] + prices[Round][j];
+            if (lossDouble[j] < minLossDouble) {
+              // customersRealizations[Round][i][0] = 1;
+              // customersRealizations[Round][i][1] = 1;
+              minLossDouble = lossDouble[j];
+              chosenLotIndexDouble = j;
+            }
+          }
+        }
+        //compare the total Loss between picking two lots and picking one double lot
+        if (totalLoss < minLossDouble) {
+          if (chosenLotIndex !== -1) {
+            availability[chosenLotIndex] = 0;
+            totalSales[Round] += prices[Round][chosenLotIndex];
+            roundChoices[i][0] = chosenLotIndex; // Record the customer's choice
+            customersRealizations[Round][i][0] = 1;
+          }
+          if (chosenLotIndexSecond !== -1) {
+            availability[chosenLotIndexSecond] = 0;
+            totalSales[Round] += prices[Round][chosenLotIndexSecond];
+            roundChoices[i][1] = chosenLotIndexSecond; // Record the customer's choice
+            customersRealizations[Round][i][1] = 1;
+          }
+        } else {
+          if (chosenLotIndexDouble !== -1) {
+            availability[chosenLotIndexDouble] = 0;
+            totalSales[Round] += prices[Round][chosenLotIndexDouble];
+            roundChoices[i][0] = chosenLotIndexDouble; // Record the customer's choice
+            roundChoices[i][1] = chosenLotIndexDouble; // Record the customer's choice
+            customersRealizations[Round][i][0] = 1;
+            customersRealizations[Round][i][1] = 1;
+          }
+        }
       }
     }
 
@@ -505,14 +627,19 @@ function drawParkingLotsAndPrices() {
     targetLayer.push();
     targetLayer.translate(lot.x * pixelMultiplier, lot.y * pixelMultiplier);
     targetLayer.rotate(lot.angle);
-    targetLayer.rect(0, 0, lot.xSize * pixelMultiplier, 5 * pixelMultiplier);
+    targetLayer.rect(
+      0,
+      0,
+      (lot.xSize + 2) * pixelMultiplier,
+      5 * pixelMultiplier
+    );
 
     // Restore the original drawing context
     targetLayer.pop();
 
     // Draw the circle for sold lots
     if (realizations[maxSalesIndex][i] === 0) {
-      targetLayer.fill(0, 0, 255);
+      targetLayer.fill(100, 100, 100);
       targetLayer.noStroke();
       targetLayer.circle(x, y, 2.5 * pixelMultiplier * 2);
     }
