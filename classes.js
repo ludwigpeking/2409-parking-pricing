@@ -6,7 +6,8 @@ let customerLotChoices = []; // This will store customer-lot pairings for each r
 
 let customersTotalIncome = 0;
 // const remoteLotDist = 400; // in meters, Not in use
-const baselineIncome = 60000; //CNY for surviving level
+// const baselineIncome = 60000; //CNY for surviving level
+const baselineIncome = 130000;
 const guessHigh = 700000;
 let householdNumbers;
 let prices = []; // prices of each round
@@ -25,12 +26,18 @@ const basement2RampMetersLoss = 50;
 
 class Customer {
   constructor(core, level = 0) {
-    this.meanIncome = 1.8 ** level * baselineIncome;
+    // this.meanIncome = 1.8 ** level * baselineIncome;
+    this.meanIncome = 1.4 ** level * baselineIncome;
     this.income = normalRandom(this.meanIncome, 0.15 * this.meanIncome);
+    //jinan a13 adjusted value
     this.carOwnership =
-      0.12 /
-      ((1.5 ** (log(this.income / baselineIncome) / log(2)) * 12000) /
+      0.075 /
+      ((1.35 ** (log(this.income / baselineIncome) / log(2)) * 12000) /
         this.income);
+    // this.carOwnership =
+    // 0.12 /
+    // ((1.5 ** (log(this.income / baselineIncome) / log(2)) * 12000) /
+    //   this.income);
 
     this.firstCar = false;
     if (this.carOwnership > random()) {
@@ -110,7 +117,7 @@ class Customer {
           this.lotsLossDouble[i] =
             (this.dists[i] +
               basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
-              this.meterValueDouble -
+              this.meterValueDouble +
             40 * this.meterValueDouble;
           if (this.dists[i] < 10)
             this.lotsLossDouble[i] -= 40 * this.meterValueDouble;
@@ -652,5 +659,6 @@ function drawParkingLotsAndPrices() {
     targetLayer.text(round(prices[maxSalesIndex][i] / 10000, 1), x, y);
   });
 
+  a13DrawStartsNumber(basement1.textLayer);
   // After drawing, make sure to render these layers in the main draw loop to see the changes
 }

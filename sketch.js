@@ -39,8 +39,10 @@ function setup() {
         loadImage(URL.createObjectURL(file), function (loadedImg) {
           basement1.inputImage = loadedImg;
           processImage(basement1, basement1.inputImage);
+
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
+          a13Values();
         });
       }
     });
@@ -56,6 +58,7 @@ function setup() {
           processImage(basement2, basement2.inputImage);
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
+          a13Values();
         });
       }
     });
@@ -189,7 +192,7 @@ function processImage(basement, inputImage) {
     endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot
     endPoint.angle = findClusterSize(cluster).angle;
     endPoint.xSize = findClusterSize(cluster).xSize;
-    if (endPoint.xSize < 5) {
+    if (endPoint.xSize < 8) {
       endPoint.small = true;
     }
     if (endPoint.xSize > 13) {
