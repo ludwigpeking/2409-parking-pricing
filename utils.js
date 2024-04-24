@@ -121,9 +121,20 @@ function drawCustomerLotLines(maxSalesIndex) {
         let targetLayer = basement.customerLinesLayer;
 
         // Set drawing styles for targetLayer
-        targetLayer.stroke(255, 20); // Color for the line
+        targetLayer.stroke(255); // Color for the line
         targetLayer.strokeWeight(0.5); // Line thickness
         targetLayer.noFill();
+
+        if (
+          (customer.firstCarMini && j === 0) ||
+          (customer.secondCarMini && j === 1)
+        ) {
+          targetLayer.stroke(255, 0, 0);
+        }
+
+        if (customer.doubleAcceptance) {
+          targetLayer.stroke(0, 255, 0);
+        }
 
         // Draw the dashed line on the targetLayer
         dashLine(targetLayer, startX, startY, endX, endY);
@@ -344,11 +355,6 @@ function saveTableFile() {
       1
     )
   );
-}
-
-function simpleManhattanDistance(start, end) {
-  const d = Math.abs(start.x - end.x) + Math.abs(start.y - end.y);
-  return d / 2;
 }
 
 //to iterate pathfinding , clean up the grid and reset the start and end points

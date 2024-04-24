@@ -13,6 +13,14 @@ let startDragX = 0;
 let startDragY = 0;
 let dragging = false;
 
+const listOfCustomers = [
+  "刚需 surviving",
+  "首置 modest",
+  "首改 comfortable",
+  "再改 affluent",
+  "高改 wealthy",
+];
+
 function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
   let canvas = createCanvas(1200 * pixelMultiplier, 800 * pixelMultiplier); // Start with a default size
@@ -42,7 +50,7 @@ function setup() {
 
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
-          a13Values();
+          a13Values(); // for A13 specific
         });
       }
     });
@@ -58,7 +66,7 @@ function setup() {
           processImage(basement2, basement2.inputImage);
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
-          a13Values();
+          a13Values(); // for A13 specific
         });
       }
     });
@@ -67,6 +75,11 @@ function setup() {
   const percentageBarInput = document.getElementById("percentageBarInput");
   percentageBarInput.addEventListener("input", function () {
     percentageBar = this.value;
+  });
+
+  const occupancyRateInput = document.getElementById("occupancyRateInput");
+  occupancyRateInput.addEventListener("input", function () {
+    occupancyRate = this.value;
   });
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -80,6 +93,7 @@ function setup() {
 
 function draw() {
   // Clear the background every frame
+  frameRate(2);
   clear();
   background(220);
 
@@ -339,19 +353,13 @@ function processImage(basement, inputImage) {
 
   //add selection doms to the start points in the canvas
   basement.coreClasses = [];
-  const listOfCustomers = [
-    "刚需 surviving",
-    "首置 modest",
-    "首改 comfortable",
-    "再改 affluent",
-    "高改 wealthy",
-  ];
+
   for (let i = 0; i < basement.starts.length; i++) {
     const start = basement.starts[i];
     const select = createSelect();
     basement.domElements.push(select);
     select.id(`selectIdForBasement${basement.floor}Start${i}`);
-    console.log("start translate", start.x + basement.translate.x);
+    // console.log("start translate", start.x + basement.translate.x);
     select.position(
       (start.x + basement.translate.x) * pixelMultiplier,
       start.y * pixelMultiplier + canvasPosition.y

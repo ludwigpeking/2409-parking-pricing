@@ -3,7 +3,7 @@ let customersUsed = [];
 let customersLeft = [];
 let salesControlActive = false;
 let customerLotChoices = []; // This will store customer-lot pairings for each round
-
+let occupancyRate = 0.7;
 let customersTotalIncome = 0;
 // const remoteLotDist = 400; // in meters, Not in use
 // const baselineIncome = 60000; //CNY for surviving level
@@ -43,35 +43,38 @@ class Customer {
     if (this.carOwnership > random()) {
       this.firstCar = true;
       //first car is a mini car
-      if (this.carOwnership < random() * 2 - 1) {
+      if (this.carOwnership < random() * 2.5 - 1.25) {
         this.firstCarMini = true;
       }
     }
+    //two car
+
     if (this.carOwnership > 1 + random() * 1.1 - 0.2) {
       this.twoCars = true;
       this.doubleAcceptance = false;
       //second car is a mini car
-      if (this.carOwnership < random() + 0.55) {
+      if (this.carOwnership < random() + 0.52) {
         this.secondCarMini = true;
       }
-      this.secondCarUsage = max(
-        this.carOwnership / 2 + 0.2 - random() * 0.4,
-        0
-      );
-      console.log("second car usage: ", this.secondCarUsage);
+      // this.secondCarUsage = max(
+      //   this.carOwnership / 2 + 0.2 - random() * 0.4,
+      //   0
+      // );
+      this.secondCarUsage = 0.78;
+      // console.log("second car usage: ", this.secondCarUsage);
     }
     //the customer can accept a double lot
-    if (this.secondCarUsage > random() + 0.4) {
+    if (this.secondCarUsage > random() + 0.5) {
       this.doubleAcceptance = true;
     }
 
     this.core = core;
     this.dists = this.core.dists;
     this.lotsLoss = [];
-    this.meterValue = (this.income / 120000 / 80) * 600 * 12;
+    this.meterValue = (this.income / 120000 / 80) * 600 * 12 * 0.75;
     this.lotsLossDouble = new Array(combinedEnds.length).fill(Infinity);
     if (this.twoCars) {
-      this.meterValueSecond = this.meterValue * this.secondCarUsage;
+      this.meterValueSecond = (this.meterValue * (1 + this.secondCarUsage)) / 2;
       this.lotsLossSecond = [];
       if (this.doubleAcceptance) {
         this.meterValueDouble = this.meterValue + this.meterValueSecond;
@@ -85,14 +88,17 @@ class Customer {
         (this.dists[i] +
           basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
         this.meterValue; //B2 penalty
-      if (this.dists[i] < 10) this.lotsLoss[i] -= 40 * this.meterValue;
-      if (this.dists[i] < 5) this.lotsLoss[i] -= 40 * this.meterValue;
+      if (this.dists[i] < 16) this.lotsLoss[i] -= 20 * this.meterValue;
+      if (this.dists[i] < 8) this.lotsLoss[i] -= 40 * this.meterValue;
       if (combinedEnds[i].small) {
-        this.lotsLoss[i] += 600 * this.meterValue;
-        if (this.firstCarMini) this.lotsLoss[i] -= 400 * this.meterValue;
+        this.lotsLoss[i] += 400 * this.meterValue;
       }
+      if (combinedEnds[i].small && this.firstCarMini) {
+        this.lotsLoss[i] -= 300 * this.meterValue;
+      }
+
       if (combinedEnds[i].narrowColorPoint)
-        this.lotsLoss[i] += 80 * this.meterValue;
+        this.lotsLoss[i] += 50 * this.meterValue;
 
       //second car loss
       if (this.twoCars) {
@@ -100,16 +106,16 @@ class Customer {
           (this.dists[i] +
             basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
           this.meterValueSecond; //B2 penalty
-        if (this.dists[i] < 10)
-          this.lotsLossSecond[i] -= 40 * this.meterValueSecond;
-        if (this.dists[i] < 5)
+        if (this.dists[i] < 16)
+          this.lotsLossSecond[i] -= 20 * this.meterValueSecond;
+        if (this.dists[i] < 8)
           this.lotsLossSecond[i] -= 40 * this.meterValueSecond;
         if (combinedEnds[i].small)
-          this.lotsLossSecond[i] += 1000 * this.meterValueSecond;
-        if (this.secondCarMini)
-          this.lotsLossSecond[i] -= 800 * this.meterValueSecond;
+          this.lotsLossSecond[i] += 400 * this.meterValueSecond;
+        if (this.secondCarMini && combinedEnds[i].small)
+          this.lotsLossSecond[i] -= 300 * this.meterValueSecond;
         if (combinedEnds[i].narrowColorPoint)
-          this.lotsLossSecond[i] += 100 * this.meterValueSecond;
+          this.lotsLossSecond[i] += 50 * this.meterValueSecond;
         //
 
         if (this.doubleAcceptance && combinedEnds[i].double) {
@@ -118,9 +124,9 @@ class Customer {
             (this.dists[i] +
               basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
               this.meterValueDouble +
-            40 * this.meterValueDouble;
+            100 * this.meterValueDouble;
           if (this.dists[i] < 10)
-            this.lotsLossDouble[i] -= 40 * this.meterValueDouble;
+            this.lotsLossDouble[i] -= 20 * this.meterValueDouble;
           if (this.dists[i] < 5)
             this.lotsLossDouble[i] -= 40 * this.meterValueDouble;
           if (combinedEnds[i].narrowColorPoint)
@@ -246,39 +252,49 @@ function createCustomers() {
   let customerFirstCarMiniCount = 0;
   let customerSecondCarMiniCount = 0;
   let customerDoubleAcceptanceCount = 0;
+  let customerSecondCarUsage = 0;
+  let averageCarOwnership = 0;
   for (let i = 0; i < basement1.starts.length; i++) {
     for (let j = 0; j < basement1.coreHouseholdNumbers[i]; j++) {
-      householdNumbers++;
-
-      const customer = new Customer(
-        basement1.starts[i],
-        basement1.coreClasses[i]
-      );
-      customersTotalIncome += customer.income;
-      if (customer.firstCar) {
-        customerFirstCarCount++;
-        // customerFirstCar.push(customer);
-        customers.push(customer);
-      }
-      if (customer.twoCars) {
-        customerSecondCarCount++;
-        // const secondBuy = new Customer(basement1.starts[i],
-        //   basement1.coreClasses[i], 1);
-        // customerSecondCar.push(secondBuy);
-        // customerSecondCar.push(customer);
-      }
-      if (customer.firstCarMini) {
-        customerFirstCarMiniCount++;
-      }
-      if (customer.secondCarMini) {
-        customerSecondCarMiniCount++;
-      }
-      if (customer.doubleAcceptance) {
-        customerDoubleAcceptanceCount++;
+      if (occupancyRate > random()) {
+        const customer = new Customer(
+          basement1.starts[i],
+          basement1.coreClasses[i]
+        );
+        householdNumbers++;
+        averageCarOwnership += customer.carOwnership;
+        customersTotalIncome += customer.income;
+        if (customer.firstCar) {
+          customerFirstCarCount++;
+          // customerFirstCar.push(customer);
+          customers.push(customer);
+        }
+        if (customer.twoCars) {
+          customerSecondCarCount++;
+          customerSecondCarUsage += customer.secondCarUsage;
+          // const secondBuy = new Customer(basement1.starts[i],
+          //   basement1.coreClasses[i], 1);
+          // customerSecondCar.push(secondBuy);
+          // customerSecondCar.push(customer);
+        }
+        if (customer.firstCarMini) {
+          customerFirstCarMiniCount++;
+        }
+        if (customer.secondCarMini) {
+          customerSecondCarMiniCount++;
+        }
+        if (customer.doubleAcceptance) {
+          customerDoubleAcceptanceCount++;
+        }
       }
     }
   }
-
+  averageCarOwnership = averageCarOwnership / householdNumbers;
+  customerSecondCarUsage = customerSecondCarUsage / customerSecondCarCount;
+  let firstCarMiniPercentage =
+    customerFirstCarMiniCount / customerFirstCarCount;
+  let secondCarMiniPercentage =
+    customerSecondCarMiniCount / customerSecondCarCount;
   //shuffle the customers
   // shuffle(customerFirstCar, true); //p5.js shuffle
   shuffle(customers, true); //p5.js shuffle
@@ -286,19 +302,39 @@ function createCustomers() {
   //combine the two arrays into customers
   // customers = customerFirstCar.concat(customerSecondCar);
   console.log(
-    "householdNumbers: ",
+    "\n",
+    "有需求客户数 householdNumbers: ",
     householdNumbers,
-    "first cars: ",
-    customerFirstCarCount,
-    "first mini cars: ",
+    // "\n",
+    // "first cars: ",
+    // customerFirstCarCount,
+    "\n",
+    "平均车位需求 average car ownership: ",
+    averageCarOwnership,
+    "\n",
+
+    "主要用车为微型车的客户数 first mini cars: ",
     customerFirstCarMiniCount,
-    "second cars: ",
+    // "\n",
+    // "first car mini percentage: ",
+    // firstCarMiniPercentage,
+    "\n",
+    "有第二辆车的客户数 second cars: ",
     customerSecondCarCount,
-    "second mini cars: ",
+    "\n",
+    "第二辆车为微型车的客户数 second mini cars: ",
     customerSecondCarMiniCount,
-    "double acceptance: ",
-    customerDoubleAcceptanceCount
+    // "\n",
+    // "second car mini percentage: ",
+    // secondCarMiniPercentage,
+    "\n",
+    "可以接受子母车位的数量 double acceptance: ",
+    customerDoubleAcceptanceCount,
+    "\n",
+    "第二辆车的使用频率 second car usage: ",
+    round(customerSecondCarUsage * 100) + "%"
   );
+
   //draw a customer carOwnership histogram
 }
 
@@ -577,8 +613,8 @@ function drawParkingLotsAndPrices() {
   basement1.textLayer.clear();
   basement2.textLayer.clear();
 
-  const lowestPrice = min(prices[maxSalesIndex]);
-  const highestPrice = max(prices[maxSalesIndex]);
+  const lowestPrice = min(prices[maxSalesIndex]) * 1.2;
+  const highestPrice = max(prices[maxSalesIndex]) * 0.8;
   const lowestColor = color(50, 0, 0);
   const highestColor = color(255, 0, 0);
 
@@ -597,6 +633,15 @@ function drawParkingLotsAndPrices() {
     //   255 - (prices[maxSalesIndex][i] * 10) / 10000,
     //   255
     // );
+
+    targetLayer.strokeWeight(0.5);
+    targetLayer.stroke(255, 100);
+    targetLayer.rectMode(CENTER);
+
+    targetLayer.push();
+    targetLayer.translate(lot.x * pixelMultiplier, lot.y * pixelMultiplier);
+    targetLayer.rotate(lot.angle);
+
     targetLayer.fill(
       lerpColor(
         lowestColor,
@@ -604,36 +649,6 @@ function drawParkingLotsAndPrices() {
         (prices[maxSalesIndex][i] - lowestPrice) / (highestPrice - lowestPrice)
       )
     );
-    targetLayer.strokeWeight(0.5);
-    targetLayer.stroke(255, 100);
-    targetLayer.rectMode(CENTER);
-
-    if (lot.small) {
-      targetLayer.strokeWeight(2);
-      // targetLayer.fill(0, 80, 255);
-      targetLayer.stroke(0, 80, 255);
-    }
-    if (lot.double) {
-      targetLayer.strokeWeight(2);
-      // targetLayer.fill(0, 160, 255);
-      targetLayer.stroke(0, 160, 255);
-    }
-    if (lot.narrowColorPoint) {
-      targetLayer.strokeWeight(2);
-      // targetLayer.fill(0, 255, 255);
-      targetLayer.stroke(160, 0, 255);
-    }
-
-    // Draw the rectangle
-    // targetLayer.rect(
-    //   x,
-    //   y,
-    //   lot.horizontal * 2.5 * pixelMultiplier * 2 + 2.5 * pixelMultiplier * 2,
-    //   -lot.horizontal * 2.5 * pixelMultiplier * 2 + 5 * pixelMultiplier * 2
-    // );
-    targetLayer.push();
-    targetLayer.translate(lot.x * pixelMultiplier, lot.y * pixelMultiplier);
-    targetLayer.rotate(lot.angle);
     targetLayer.rect(
       0,
       0,
@@ -646,8 +661,11 @@ function drawParkingLotsAndPrices() {
 
     // Draw the circle for sold lots
     if (realizations[maxSalesIndex][i] === 0) {
-      targetLayer.fill(100, 100, 100);
-      targetLayer.noStroke();
+      // targetLayer.fill(100, 100, 100);
+      targetLayer.noFill();
+      // targetLayer.noStroke();
+      targetLayer.stroke(255, 100);
+      targetLayer.strokeWeight(2);
       targetLayer.circle(x, y, 2.5 * pixelMultiplier * 2);
     }
 
@@ -657,6 +675,25 @@ function drawParkingLotsAndPrices() {
     targetLayer.textSize(pixelMultiplier * 2);
     targetLayer.textAlign(CENTER, CENTER);
     targetLayer.text(round(prices[maxSalesIndex][i] / 10000, 1), x, y);
+    targetLayer.noStroke();
+
+    if (lot.small) {
+      // targetLayer.strokeWeight(2);
+      targetLayer.fill(0, 80, 255);
+
+      // targetLayer.stroke(0, 80, 255);
+    }
+    if (lot.double) {
+      // targetLayer.strokeWeight(2);
+      targetLayer.fill(0, 160, 255);
+      // targetLayer.stroke(0, 160, 255);
+    }
+    if (lot.narrowColorPoint) {
+      // targetLayer.strokeWeight(2);
+      targetLayer.fill(0, 255, 255);
+      // targetLayer.stroke(160, 0, 255);
+    }
+    targetLayer.rect(x, y + 8, 2 * pixelMultiplier, 2 * pixelMultiplier);
   });
 
   a13DrawStartsNumber(basement1.textLayer);

@@ -1,19 +1,19 @@
 function a13DrawStartsNumber(targetLayer) {
+  const listOfCustomers = ["刚需 ", "首置 ", "首改 ", "再改 ", "高改 "];
   for (let i = 0; i < basement1.starts.length; i++) {
     let start = basement1.starts[i];
 
     if (targetLayer) {
-      console.log("Drawing start", i);
-      targetLayer.textSize(20);
+      //   console.log("Drawing start", i);
+      targetLayer.textSize(12);
       targetLayer.fill(255);
       targetLayer.text(
-        i +
-          " ," +
-          basement1.coreClasses[i] +
+        listOfCustomers[basement1.coreClasses[i]] +
           ", " +
-          basement1.coreHouseholdNumbers[i],
+          basement1.coreHouseholdNumbers[i] +
+          "户",
         start.x * pixelMultiplier,
-        start.y * pixelMultiplier
+        start.y * pixelMultiplier - 2 * pixelMultiplier
       );
     }
   }
