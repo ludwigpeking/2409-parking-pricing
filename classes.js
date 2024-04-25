@@ -7,9 +7,10 @@ let occupancyRate = 0.7;
 let customersTotalIncome = 0;
 // const remoteLotDist = 400; // in meters, Not in use
 // const baselineIncome = 60000; //CNY for surviving level
-const baselineIncome = 130000;
+const baselineIncome = 115000;
 const guessHigh = 700000;
-let householdNumbers;
+let householdNumberWithDeal;
+let totalHouseholdNumber;
 let prices = []; // prices of each round
 let realizations = []; // realizations of each round
 let customersRealizations = []; // customers' realizations of each round
@@ -119,12 +120,12 @@ class Customer {
         //
 
         if (this.doubleAcceptance && combinedEnds[i].double) {
-          console.log("double lot involved");
+          // console.log("double lot involved");
           this.lotsLossDouble[i] =
             (this.dists[i] +
               basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
               this.meterValueDouble +
-            100 * this.meterValueDouble;
+            150 * this.meterValueDouble;
           if (this.dists[i] < 10)
             this.lotsLossDouble[i] -= 20 * this.meterValueDouble;
           if (this.dists[i] < 5)
@@ -245,7 +246,8 @@ function createCustomers() {
   // const customerFirstCar = [];
   // const customerSecondCar = [];
   // create customers
-  householdNumbers = 0;
+  householdNumberWithDeal = 0;
+  totalHouseholdNumber = 0;
   customersTotalIncome = 0;
   let customerFirstCarCount = 0;
   let customerSecondCarCount = 0;
@@ -256,12 +258,13 @@ function createCustomers() {
   let averageCarOwnership = 0;
   for (let i = 0; i < basement1.starts.length; i++) {
     for (let j = 0; j < basement1.coreHouseholdNumbers[i]; j++) {
+      totalHouseholdNumber++;
       if (occupancyRate > random()) {
         const customer = new Customer(
           basement1.starts[i],
           basement1.coreClasses[i]
         );
-        householdNumbers++;
+        householdNumberWithDeal++;
         averageCarOwnership += customer.carOwnership;
         customersTotalIncome += customer.income;
         if (customer.firstCar) {
@@ -289,7 +292,7 @@ function createCustomers() {
       }
     }
   }
-  averageCarOwnership = averageCarOwnership / householdNumbers;
+  averageCarOwnership = averageCarOwnership / householdNumberWithDeal;
   customerSecondCarUsage = customerSecondCarUsage / customerSecondCarCount;
   let firstCarMiniPercentage =
     customerFirstCarMiniCount / customerFirstCarCount;
@@ -303,8 +306,8 @@ function createCustomers() {
   // customers = customerFirstCar.concat(customerSecondCar);
   console.log(
     "\n",
-    "有需求客户数 householdNumbers: ",
-    householdNumbers,
+    "有需求客户数 householdNumberWithDeal: ",
+    householdNumberWithDeal,
     // "\n",
     // "first cars: ",
     // customerFirstCarCount,
@@ -591,7 +594,7 @@ function bidding() {
   console.log("Max Sales: ", totalSales[maxSalesIndex]);
 
   //print results on the canvas: total lot number, total customer number, realization percentage, total sales, average price
-  printOutput();
+  printOutput(basement1.textLayer);
   //export the final statistics 总车位数, 总户数, 总售出车位数, 车位售出率, 总销售额, 单车位实现价格 to a csv file, using p5.js table
   saveTableFile();
   // drawCustomerLotLines(maxSalesIndex);
@@ -613,10 +616,12 @@ function drawParkingLotsAndPrices() {
   basement1.textLayer.clear();
   basement2.textLayer.clear();
 
-  const lowestPrice = min(prices[maxSalesIndex]) * 1.2;
-  const highestPrice = max(prices[maxSalesIndex]) * 0.8;
+  const lowestPrice = min(prices[maxSalesIndex]);
+  const highestPrice = max(prices[maxSalesIndex]);
   const lowestColor = color(50, 0, 0);
   const highestColor = color(255, 0, 0);
+  const lerpHigh = lowestPrice + 0.7 * (highestPrice - lowestPrice);
+  const lerpLow = lowestPrice + 0.2 * (highestPrice - lowestPrice);
 
   combinedEnds.forEach((lot, i) => {
     // Select the correct textLayer based on the basement identifier
@@ -646,7 +651,7 @@ function drawParkingLotsAndPrices() {
       lerpColor(
         lowestColor,
         highestColor,
-        (prices[maxSalesIndex][i] - lowestPrice) / (highestPrice - lowestPrice)
+        (prices[maxSalesIndex][i] - lerpLow) / (lerpHigh - lerpLow)
       )
     );
     targetLayer.rect(
@@ -679,7 +684,7 @@ function drawParkingLotsAndPrices() {
 
     if (lot.small) {
       // targetLayer.strokeWeight(2);
-      targetLayer.fill(0, 80, 255);
+      targetLayer.fill(80, 80, 255);
 
       // targetLayer.stroke(0, 80, 255);
     }
@@ -690,8 +695,11 @@ function drawParkingLotsAndPrices() {
     }
     if (lot.narrowColorPoint) {
       // targetLayer.strokeWeight(2);
-      targetLayer.fill(0, 255, 255);
+      targetLayer.fill(160, 0, 255);
       // targetLayer.stroke(160, 0, 255);
+    }
+    if (!lot.small && !lot.narrowColorPoint && !lot.narrowColorPoint) {
+      targetLayer.fill(0, 0, 255);
     }
     targetLayer.rect(x, y + 8, 2 * pixelMultiplier, 2 * pixelMultiplier);
   });

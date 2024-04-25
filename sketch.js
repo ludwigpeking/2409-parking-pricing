@@ -4,6 +4,7 @@ let basement2 = new Basement(2);
 let pixelMultiplier = 4;
 //mouse events
 let x1, y1, x2, y2;
+let legend;
 let selection = false;
 let confirmed = false;
 let zoom = 1;
@@ -23,10 +24,11 @@ const listOfCustomers = [
 
 function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
-  let canvas = createCanvas(1200 * pixelMultiplier, 800 * pixelMultiplier); // Start with a default size
+  let canvas = createCanvas(2000 * pixelMultiplier, 700 * pixelMultiplier); // Start with a default size
 
   canvas.parent("canvasContainer");
   background(220); // Set a default background
+  legend = drawLegend();
   // cursor("zoom-in");
   // Set up file input listeners
   const defaultBasement1Image = "./image/test.png"; // Replace with actual path or URL
@@ -93,7 +95,7 @@ function setup() {
 
 function draw() {
   // Clear the background every frame
-  frameRate(2);
+  frameRate(1);
   clear();
   background(220);
 
@@ -117,7 +119,7 @@ function draw() {
     image(basement2.textLayer, basement2.translate.x * pixelMultiplier, 0);
   }
   if (basement1.customerLinesLayer) {
-    drawCustomerLotLines(maxSalesIndex);
+    // drawCustomerLotLines(maxSalesIndex);
   }
   if (drawCustomerLotLineBool) {
     image(basement1.customerLinesLayer, 0, 0);
@@ -129,6 +131,8 @@ function draw() {
       );
     }
   }
+
+  image(legend, 0, 0);
   //// to check graph nodes
   // if (basement1.graph) drawGraph(basement1);
   // if (basement2.graph) drawGraph(basement2);
@@ -137,7 +141,6 @@ function draw() {
 function processImage(basement, inputImage) {
   console.log("processImage", "basement", basement.floor, inputImage);
   basement.grid = makeGrid(basement, inputImage);
-  basement.nodeId = 0;
   if (basement.floor === 2) {
     basement.translate.x = basement1.inputImage.width;
   }
@@ -467,6 +470,7 @@ function determineCellProps(color) {
   const [r, g, b] = color;
   const baseProps = {
     walkable: true,
+    whitePoint: false, // open space
     bluePoint: false, // parking (<200,<200,255) basic blue indicator
     regularColorPoint: false, // regular parking
     miniColorPoint: false, // mini parking
@@ -483,6 +487,12 @@ function determineCellProps(color) {
   if (r < 100 && g < 100 && b < 100) {
     baseProps.walkable = false;
     baseProps.color = [0, 0, 0]; //black walls
+  }
+
+  if (r > 200 && g > 200 && b > 200 && r < 255 && g < 255 && b < 255) {
+    baseProps.walkable = true;
+    baseProps.whitePoint = true;
+    baseProps.color = [255, 255, 255]; //white, open space
   }
 
   // Red

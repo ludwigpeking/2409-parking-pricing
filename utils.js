@@ -121,7 +121,7 @@ function drawCustomerLotLines(maxSalesIndex) {
         let targetLayer = basement.customerLinesLayer;
 
         // Set drawing styles for targetLayer
-        targetLayer.stroke(255); // Color for the line
+        targetLayer.stroke(50); // Color for the line
         targetLayer.strokeWeight(0.5); // Line thickness
         targetLayer.noFill();
 
@@ -129,11 +129,11 @@ function drawCustomerLotLines(maxSalesIndex) {
           (customer.firstCarMini && j === 0) ||
           (customer.secondCarMini && j === 1)
         ) {
-          targetLayer.stroke(255, 0, 0);
+          targetLayer.stroke(255, 200, 200);
         }
 
         if (customer.doubleAcceptance) {
-          targetLayer.stroke(0, 255, 0);
+          targetLayer.stroke(200, 255, 200);
         }
 
         // Draw the dashed line on the targetLayer
@@ -141,35 +141,36 @@ function drawCustomerLotLines(maxSalesIndex) {
       }
     }
   }
+  incomePyramid();
+}
 
-  //   Object.entries(choices).forEach(([customerIndex, lotIndex]) => {
-  //     let customer = customers[customerIndex];
-  //     let lot = combinedEnds[lotIndex];
-  //     let basement = lot.basement === 1 ? basement1 : basement2; // Determine the correct basement
+function incomePyramid() {
+  //draw a customer income pyramid diagram on targetLayer
+  let targetLayer = basement1.customerLinesLayer;
+  targetLayer.push();
+  targetLayer.translate(0, 500);
+  for (let i = 100000; i < 800000; i += 10000) {
+    let count = 0;
+    for (let j = 0; j < customers.length; j++) {
+      if (customers[j].income >= i && customers[j].income < i + 10000) {
+        count++;
+      }
+    }
 
-  //     let startX = customer.core.x * pixelMultiplier;
-  //     let startY = customer.core.y * pixelMultiplier;
-  //     let endX = lot.x * pixelMultiplier;
-  //     let endY = lot.y * pixelMultiplier;
-
-  //     // Select the correct textLayer for drawing
-  //     let targetLayer = basement.customerLinesLayer;
-
-  //     // Set drawing styles for targetLayer
-  //     targetLayer.stroke(255, 20); // Color for the line
-  //     targetLayer.strokeWeight(0.5); // Line thickness
-  //     targetLayer.noFill();
-
-  //     // Draw the dashed line on the targetLayer
-  //     dashLine(targetLayer, startX, startY, endX, endY);
-
-  //     // Draw a circle at the end on the targetLayer
-  //     // targetLayer.circle(endX, endY, 2 * pixelMultiplier);
-
-  //     // Draw text annotation on the targetLayer
-  //     // targetLayer.fill(0);
-  //     // targetLayer.text(customerIndex, endX, endY + 10);
-  //   });
+    targetLayer.stroke(200, 200, 0);
+    targetLayer.strokeWeight(5);
+    if (count > 0) {
+      targetLayer.line(100, 100 + i / 500, 100 + count * 10, 100 + i / 500);
+    }
+    targetLayer.noStroke();
+    targetLayer.fill(0);
+    targetLayer.text(
+      "收入 " + round(i / 10000) + "万:   " + count + " 组",
+      10,
+      100 + i / 500
+    );
+  }
+  targetLayer.pop();
 }
 
 function drawGraph(basement) {
@@ -220,92 +221,89 @@ function dashLine(layer, x1, y1, x2, y2, len = 5, gap = 3) {
   }
 }
 
-// function printOutput() {
-//   textLayer.fill(255, 220);
-//   textLayer.noStroke();
-//   textLayer.pixelDensity(2);
-//   textLayer.rect(0, 0, width, 35 * pixelMultiplier);
-//   textLayer.fill(0);
-//   textLayer.textAlign(LEFT, TOP);
-//   textStyle(BOLD);
-//   textLayer.textSize(3 * pixelMultiplier);
-//   let topMargin = 6 * pixelMultiplier;
-//   let leftMargin = 2 * pixelMultiplier;
-//   textLayer.text("模拟结果", 10, -4 * pixelMultiplier + topMargin);
-//   textStyle(NORMAL);
-//   textLayer.textSize(2 * pixelMultiplier);
-//   textLayer.text(
-//     "总车位数 :  " + ends.length,
-//     leftMargin,
-//     pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "总户数 :  " + householdNumbers,
-//     leftMargin,
-//     4 * pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "总售出车位数 :  " +
-//       (ends.length - realizations[maxSalesIndex].reduce((a, b) => a + b, 0)),
-//     leftMargin,
-//     7 * pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "车位售出率 :  " + round(percentages[maxSalesIndex] * 100) + "%",
-//     leftMargin,
-//     10 * pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "总销售额 :  " + round(totalSales[maxSalesIndex] / 10000) + "万元",
-//     leftMargin,
-//     13 * pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "单车位实现价格 :  " +
-//       round(
-//         totalSales[maxSalesIndex] /
-//           (ends.length -
-//             realizations[maxSalesIndex].reduce((a, b) => a + b, 0)) /
-//           10000,
-//         1
-//       ) +
-//       "万元",
-//     leftMargin,
-//     16 * pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "模拟客户总收入" + round(customersTotalIncome / 10000) + "万元",
-//     leftMargin,
-//     19 * pixelMultiplier + topMargin
-//   );
-//   // text ( '倍数' + round(customersTotalIncome/totalSales[maxSalesIndex], 3), leftMargin, 22 * pixelMultiplier)
-//   textLayer.text(
-//     "客户需求车位总数" + customers.length,
-//     leftMargin,
-//     22 * pixelMultiplier + topMargin
-//   );
-//   textLayer.text(
-//     "出售比例要求下限 : " + percentageBar * 100 + "%",
-//     leftMargin,
-//     25 * pixelMultiplier + topMargin
-//   );
-// }
+//draw a key legend for lot markers
+function drawLegend() {
+  let legend = createGraphics(width, height);
 
-function printOutput() {
-  console.log("模拟结果");
-  console.log("总车位数 : " + combinedEnds.length);
-  console.log("总户数 : " + householdNumbers);
-  console.log(
-    "总售出车位数 : " +
+  legend.noStroke();
+
+  legend.fill(255);
+  legend.textSize(5 * pixelMultiplier);
+  legend.text("图例", 60, 40);
+  legend.textSize(3 * pixelMultiplier);
+
+  legend.text("常规车位", 60, 80);
+  legend.text("子母车位", 60, 110);
+  legend.text("微型车位", 60, 140);
+  legend.text("难操作车位", 60, 170);
+
+  legend.text("高价格", 60, 210);
+  legend.text("低价格", 60, 300);
+
+  legend.fill(0, 0, 255); //常规车位 regular
+  legend.rect(30, 70, 20, 20);
+
+  legend.fill(0, 160, 255); //子母车位 double
+  legend.rect(30, 100, 20, 20);
+  legend.fill(80, 80, 255); //微型车位 small
+  legend.rect(30, 130, 20, 20);
+  legend.fill(160, 0, 255); //难操作车位 narrow
+  legend.rect(30, 160, 20, 20);
+
+  const lowestColor = color(50, 0, 0);
+  const highestColor = color(255, 0, 0);
+  for (let y = 200; y < 300; y++) {
+    // Interpolate between colorA and colorB
+    let inter = map(y, 200, 300, 0, 1);
+    let c = lerpColor(highestColor, lowestColor, inter);
+    legend.stroke(c);
+    legend.line(30, y, 50, y);
+  }
+
+  return legend;
+}
+
+function printOutput(textLayer) {
+  textLayer.fill(255);
+  textLayer.textAlign(LEFT, TOP);
+  textStyle(BOLD);
+  textLayer.push();
+  textLayer.translate(60, 300);
+  textLayer.textSize(5 * pixelMultiplier);
+  let topMargin = 8 * pixelMultiplier;
+  let leftMargin = 0 * pixelMultiplier;
+  textLayer.text("模拟结果", 0, 40);
+  textStyle(NORMAL);
+  textLayer.textSize(3 * pixelMultiplier);
+  textLayer.text(
+    "总车位数 :  " + combinedEnds.length,
+    leftMargin,
+    11 * pixelMultiplier + topMargin
+  );
+  textLayer.text(
+    "总户数 :  " + totalHouseholdNumber,
+    leftMargin,
+    15 * pixelMultiplier + topMargin
+  );
+  textLayer.text(
+    "总售出车位数 :  " +
       (combinedEnds.length -
-        realizations[maxSalesIndex].reduce((a, b) => a + b, 0))
+        realizations[maxSalesIndex].reduce((a, b) => a + b, 0)),
+    leftMargin,
+    19 * pixelMultiplier + topMargin
   );
-  console.log("车位售出率 : " + round(percentages[maxSalesIndex] * 100) + "%");
-  console.log(
-    "总销售额 : " + round(totalSales[maxSalesIndex] / 10000) + "万元"
+  textLayer.text(
+    "车位售出率 :  " + round(percentages[maxSalesIndex] * 100) + "%",
+    leftMargin,
+    23 * pixelMultiplier + topMargin
   );
-  console.log(
-    "单车位实现价格 : " +
+  textLayer.text(
+    "总销售额 :  " + round(totalSales[maxSalesIndex] / 10000) + "万元",
+    leftMargin,
+    27 * pixelMultiplier + topMargin
+  );
+  textLayer.text(
+    "单车位实现价格 :  " +
       round(
         totalSales[maxSalesIndex] /
           (combinedEnds.length -
@@ -313,13 +311,58 @@ function printOutput() {
           10000,
         1
       ) +
-      "万元"
+      "万元",
+    leftMargin,
+    31 * pixelMultiplier + topMargin
   );
-  console.log("模拟客户总收入" + round(customersTotalIncome / 10000) + "万元");
-  // console.log('倍数' + round(customersTotalIncome/totalSales[maxSalesIndex], 3));
-  console.log("客户需求车位总数" + customers.length);
-  console.log("出售比例要求下限 : " + percentageBar * 100 + "%");
+  textLayer.text(
+    "模拟客户总收入" + round(customersTotalIncome / 10000) + "万元",
+    leftMargin,
+    35 * pixelMultiplier + topMargin
+  );
+  // text ( '倍数' + round(customersTotalIncome/totalSales[maxSalesIndex], 3), leftMargin, 22 * pixelMultiplier)
+  textLayer.text(
+    "有需求客户总数" + customers.length,
+    leftMargin,
+    39 * pixelMultiplier + topMargin
+  );
+  textLayer.text(
+    "出售比例要求下限 : " + percentageBar * 100 + "%",
+    leftMargin,
+    43 * pixelMultiplier + topMargin
+  );
+  textLayer.pop();
 }
+
+// function printOutput() {
+//   console.log("模拟结果");
+//   console.log("总车位数 : " + combinedEnds.length);
+//   console.log("总户数 : " + householdNumbers);
+//   console.log(
+//     "总售出车位数 : " +
+//       (combinedEnds.length -
+//         realizations[maxSalesIndex].reduce((a, b) => a + b, 0))
+//   );
+//   console.log("车位售出率 : " + round(percentages[maxSalesIndex] * 100) + "%");
+//   console.log(
+//     "总销售额 : " + round(totalSales[maxSalesIndex] / 10000) + "万元"
+//   );
+//   console.log(
+//     "单车位实现价格 : " +
+//       round(
+//         totalSales[maxSalesIndex] /
+//           (combinedEnds.length -
+//             realizations[maxSalesIndex].reduce((a, b) => a + b, 0)) /
+//           10000,
+//         1
+//       ) +
+//       "万元"
+//   );
+//   console.log("模拟客户总收入" + round(customersTotalIncome / 10000) + "万元");
+//   // console.log('倍数' + round(customersTotalIncome/totalSales[maxSalesIndex], 3));
+//   console.log("客户需求车位总数" + customers.length);
+//   console.log("出售比例要求下限 : " + percentageBar * 100 + "%");
+// }
 
 function saveTableFile() {
   let table = new p5.Table();
@@ -332,7 +375,7 @@ function saveTableFile() {
 
   let newRow = table.addRow();
   newRow.setNum("总车位数 totalLots", combinedEnds.length);
-  newRow.setNum("总户数 totalHouseholds", householdNumbers);
+  newRow.setNum("总户数 totalHouseholds", totalHouseholdNumber);
   newRow.setNum(
     "总售出车位数 totalSoldLots",
     combinedEnds.length - realizations[maxSalesIndex].reduce((a, b) => a + b, 0)

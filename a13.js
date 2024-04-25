@@ -1,12 +1,12 @@
 function a13DrawStartsNumber(targetLayer) {
-  const listOfCustomers = ["刚需 ", "首置 ", "首改 ", "再改 ", "高改 "];
+  const listOfCustomers = ["刚需 ", "首置 ", "18层小高 ", "11层洋房 ", "洋房 "];
   for (let i = 0; i < basement1.starts.length; i++) {
     let start = basement1.starts[i];
 
     if (targetLayer) {
       //   console.log("Drawing start", i);
       targetLayer.textSize(12);
-      targetLayer.fill(255);
+      targetLayer.fill(122);
       targetLayer.text(
         listOfCustomers[basement1.coreClasses[i]] +
           ", " +
