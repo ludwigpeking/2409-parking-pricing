@@ -265,7 +265,7 @@ function processImage(basement, inputImage) {
     const detachedStart = basement.detachedStarts[i];
     for (let j = 0; j < basement.transfers.length; j++) {
       const transfer = basement.transfers[j];
-      const distToTransfer = manhattanDistance(detachedStart, transfer);
+      const distToTransfer = manhattanDistance(detachedStart, transfer) + 80;
       detachedStart.distsToTransfer.push(distToTransfer);
     }
   }

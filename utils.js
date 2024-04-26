@@ -268,7 +268,7 @@ function printOutput(textLayer) {
   textLayer.textAlign(LEFT, TOP);
   textStyle(BOLD);
   textLayer.push();
-  textLayer.translate(60, 300);
+  textLayer.translate(10, 300);
   textLayer.textSize(5 * pixelMultiplier);
   let topMargin = 8 * pixelMultiplier;
   let leftMargin = 0 * pixelMultiplier;
