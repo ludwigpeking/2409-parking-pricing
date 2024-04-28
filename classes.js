@@ -3,7 +3,7 @@ let customersUsed = [];
 let customersLeft = [];
 let salesControlActive = false;
 let customerLotChoices = []; // This will store customer-lot pairings for each round
-let occupancyRate = 0.7;
+let occupancyRate = 0.85;
 let customersTotalIncome = 0;
 // const remoteLotDist = 400; // in meters, Not in use
 // const baselineIncome = 60000; //CNY for surviving level
@@ -72,7 +72,7 @@ class Customer {
     this.core = core;
     this.dists = this.core.dists;
     this.lotsLoss = [];
-    this.meterValue = (this.income / 120000 / 80) * 600 * 12 * 0.75;
+    this.meterValue = (this.income / 120000 / 80) * 600 * 12 * 0.85;
     this.lotsLossDouble = new Array(combinedEnds.length).fill(Infinity);
     if (this.twoCars) {
       this.meterValueSecond = (this.meterValue * (1 + this.secondCarUsage)) / 2;
@@ -89,8 +89,8 @@ class Customer {
         (this.dists[i] +
           basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
         this.meterValue; //B2 penalty
-      if (this.dists[i] < 16) this.lotsLoss[i] -= 20 * this.meterValue;
-      if (this.dists[i] < 8) this.lotsLoss[i] -= 40 * this.meterValue;
+      if (this.dists[i] < 16) this.lotsLoss[i] -= 30 * this.meterValue;
+      if (this.dists[i] < 8) this.lotsLoss[i] -= 50 * this.meterValue;
       if (combinedEnds[i].small) {
         this.lotsLoss[i] += 400 * this.meterValue;
       }
@@ -98,8 +98,16 @@ class Customer {
         this.lotsLoss[i] -= 300 * this.meterValue;
       }
 
-      if (combinedEnds[i].narrowColorPoint)
-        this.lotsLoss[i] += 50 * this.meterValue;
+      if (combinedEnds[i].narrowColorPoint) {
+        this.lotsLoss[i] += 30 * this.meterValue;
+      }
+
+      if (combinedEnds[i].deadEndPoint) {
+        this.lotsLoss[i] += 70 * this.meterValue;
+        if (combinedEnds[i].small) {
+          this.lotsLoss[i] -= 50 * this.meterValue;
+        }
+      }
 
       //second car loss
       if (this.twoCars) {
@@ -108,15 +116,21 @@ class Customer {
             basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
           this.meterValueSecond; //B2 penalty
         if (this.dists[i] < 16)
-          this.lotsLossSecond[i] -= 20 * this.meterValueSecond;
+          this.lotsLossSecond[i] -= 30 * this.meterValueSecond;
         if (this.dists[i] < 8)
-          this.lotsLossSecond[i] -= 40 * this.meterValueSecond;
+          this.lotsLossSecond[i] -= 50 * this.meterValueSecond;
         if (combinedEnds[i].small)
           this.lotsLossSecond[i] += 400 * this.meterValueSecond;
         if (this.secondCarMini && combinedEnds[i].small)
           this.lotsLossSecond[i] -= 300 * this.meterValueSecond;
         if (combinedEnds[i].narrowColorPoint)
-          this.lotsLossSecond[i] += 50 * this.meterValueSecond;
+          this.lotsLossSecond[i] += 30 * this.meterValueSecond;
+        if (combinedEnds[i].deadEndPoint) {
+          this.lotsLossSecond[i] += 70 * this.meterValueSecond;
+          if (combinedEnds[i].small)
+            this.lotsLossSecond[i] -= 50 * this.meterValueSecond;
+        }
+
         //
 
         if (this.doubleAcceptance && combinedEnds[i].double) {
@@ -127,11 +141,16 @@ class Customer {
               this.meterValueDouble +
             150 * this.meterValueDouble;
           if (this.dists[i] < 10)
-            this.lotsLossDouble[i] -= 20 * this.meterValueDouble;
+            this.lotsLossDouble[i] -= 30 * this.meterValueDouble;
           if (this.dists[i] < 5)
-            this.lotsLossDouble[i] -= 40 * this.meterValueDouble;
+            this.lotsLossDouble[i] -= 50 * this.meterValueDouble;
           if (combinedEnds[i].narrowColorPoint)
-            this.lotsLossDouble[i] += 100 * this.meterValueDouble;
+            this.lotsLossDouble[i] += 30 * this.meterValueDouble;
+          if (combinedEnds[i].deadEndPoint) {
+            this.lotsLossDouble[i] += 70 * this.meterValueDouble;
+            if (combinedEnds[i].small)
+              this.lotsLossDouble[i] -= 50 * this.meterValueDouble;
+          }
         }
       }
     }
@@ -173,6 +192,30 @@ function startBuyingSimulation() {
   } else {
     alert("The sales control is active!"); //not implemented yet.
   }
+}
+
+function multipleSimulation(times) {
+  // console.log(prices[maxSalesIndex]);
+  // console.log(realizations[maxSalesIndex]);
+  // console.log(round(percentages[maxSalesIndex] * 100), "%");
+  // console.log("Max Sales: ", totalSales[maxSalesIndex]);
+  const results = [];
+  let HighPrices = [];
+
+  for (let i = 0; i < times; i++) {
+    startBuyingSimulation();
+    HighPrices.push(prices[maxSalesIndex]);
+  }
+  //average the prices
+  for (let i = 0; i < HighPrices[0].length; i++) {
+    let sum = 0;
+    for (let j = 0; j < HighPrices.length; j++) {
+      sum += HighPrices[j][i];
+    }
+    results.push(sum / times);
+  }
+
+  //calculate
 }
 
 function combineEnds(basement1, basement2) {
@@ -698,7 +741,17 @@ function drawParkingLotsAndPrices() {
       targetLayer.fill(160, 0, 255);
       // targetLayer.stroke(160, 0, 255);
     }
-    if (!lot.small && !lot.narrowColorPoint && !lot.narrowColorPoint) {
+    if (lot.deadEndPoint) {
+      // targetLayer.strokeWeight(2);
+      targetLayer.fill(255, 0, 255);
+      // targetLayer.stroke(255, 0, 0);
+    }
+    if (
+      !lot.small &&
+      !lot.narrowColorPoint &&
+      !lot.narrowColorPoint &&
+      !lot.deadEndPoint
+    ) {
       targetLayer.fill(0, 0, 255);
     }
     targetLayer.rect(x, y + 8, 2 * pixelMultiplier, 2 * pixelMultiplier);

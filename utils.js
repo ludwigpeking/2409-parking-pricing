@@ -121,7 +121,7 @@ function drawCustomerLotLines(maxSalesIndex) {
         let targetLayer = basement.customerLinesLayer;
 
         // Set drawing styles for targetLayer
-        targetLayer.stroke(50); // Color for the line
+        targetLayer.stroke(50, 100); // Color for the line
         targetLayer.strokeWeight(0.5); // Line thickness
         targetLayer.noFill();
 
@@ -129,11 +129,11 @@ function drawCustomerLotLines(maxSalesIndex) {
           (customer.firstCarMini && j === 0) ||
           (customer.secondCarMini && j === 1)
         ) {
-          targetLayer.stroke(255, 200, 200);
+          targetLayer.stroke(255, 0, 0, 200);
         }
 
         if (customer.doubleAcceptance) {
-          targetLayer.stroke(200, 255, 200);
+          targetLayer.stroke(0, 255, 0, 200);
         }
 
         // Draw the dashed line on the targetLayer

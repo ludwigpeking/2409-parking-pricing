@@ -476,6 +476,7 @@ function determineCellProps(color) {
     miniColorPoint: false, // mini parking
     doubleColorPoint: false, // double parking
     narrowColorPoint: false, // narrow parking,
+    deadEndPoint: false, // dead end
     redPoint: false, // core
     yellowPoint: false, // detached core
     greenPoint: false, // transfer
@@ -490,7 +491,7 @@ function determineCellProps(color) {
   }
 
   if (r > 200 && g > 200 && b > 200 && r < 255 && g < 255 && b < 255) {
-    baseProps.walkable = true;
+    baseProps.walkable = true; //no use
     baseProps.whitePoint = true;
     baseProps.color = [255, 255, 255]; //white, open space
   }
@@ -520,7 +521,7 @@ function determineCellProps(color) {
   }
 
   //blue
-  if (r < 200 && g < 200 && b > 200) {
+  if (g < 200 && b > 200) {
     baseProps.bluePoint = true;
     baseProps.color[0] = 0;
     baseProps.color[2] = 255;
@@ -542,6 +543,10 @@ function determineCellProps(color) {
   if (r > 100 && r < 200 && g < 200 && b > 200) {
     baseProps.narrowColorPoint = true; //[150, 0-200, 255]
     baseProps.color[0] = 150;
+  }
+  if (r > 200 && g < 200 && b > 200) {
+    baseProps.deadEndPoint = true;
+    baseProps.color[0] = 255;
   }
 
   return baseProps;
