@@ -31,7 +31,7 @@ function setup() {
   legend = drawLegend();
   // cursor("zoom-in");
   // Set up file input listeners
-  const defaultBasement1Image = "./image/test.png"; // Replace with actual path or URL
+  const defaultBasement1Image = "./inputs/V2.png"; // Replace with actual path or URL
   loadImage(defaultBasement1Image, function (loadedImg) {
     basement1.inputImage = loadedImg;
     processImage(basement1, basement1.inputImage);
