@@ -148,7 +148,7 @@ function incomePyramid() {
   //draw a customer income pyramid diagram on targetLayer
   let targetLayer = basement1.customerLinesLayer;
   targetLayer.push();
-  targetLayer.translate(0, 500);
+  targetLayer.translate(0, 600);
   for (let i = 100000; i < 800000; i += 10000) {
     let count = 0;
     for (let j = 0; j < customers.length; j++) {
@@ -160,15 +160,15 @@ function incomePyramid() {
     targetLayer.stroke(200, 200, 0);
     targetLayer.strokeWeight(5);
     if (count > 0) {
-      targetLayer.line(100, 100 + i / 500, 100 + count * 10, 100 + i / 500);
+      targetLayer.line(100, i / 500, 100 + count * 5, i / 500);
     }
+
     targetLayer.noStroke();
-    targetLayer.fill(0);
-    targetLayer.text(
-      "收入 " + round(i / 10000) + "万:   " + count + " 组",
-      10,
-      100 + i / 500
-    );
+    targetLayer.fill(255);
+    targetLayer.textSize(4 * pixelMultiplier);
+    targetLayer.text("Income Distribution", 10, 150);
+    targetLayer.textSize(3 * pixelMultiplier);
+    targetLayer.text(round(i / 10000) + "万:   " + count + " 组", 10, i / 500);
   }
   targetLayer.pop();
 }
@@ -236,9 +236,10 @@ function drawLegend() {
   legend.text("子母车位", 60, 110);
   legend.text("微型车位", 60, 140);
   legend.text("难操作车位", 60, 170);
+  legend.text("尽端车位", 60, 200);
 
-  legend.text("高价格", 60, 210);
-  legend.text("低价格", 60, 300);
+  legend.text("高价格", 60, 240);
+  legend.text("低价格", 60, 330);
 
   legend.fill(0, 0, 255); //常规车位 regular
   legend.rect(30, 70, 20, 20);
@@ -249,12 +250,14 @@ function drawLegend() {
   legend.rect(30, 130, 20, 20);
   legend.fill(160, 0, 255); //难操作车位 narrow
   legend.rect(30, 160, 20, 20);
+  legend.fill(255, 0, 255); //尽端车位 end
+  legend.rect(30, 190, 20, 20);
 
   const lowestColor = color(50, 0, 0);
   const highestColor = color(255, 0, 0);
-  for (let y = 200; y < 300; y++) {
+  for (let y = 230; y < 330; y++) {
     // Interpolate between colorA and colorB
-    let inter = map(y, 200, 300, 0, 1);
+    let inter = map(y, 230, 330, 0, 1);
     let c = lerpColor(highestColor, lowestColor, inter);
     legend.stroke(c);
     legend.line(30, y, 50, y);
@@ -268,7 +271,7 @@ function printOutput(textLayer) {
   textLayer.textAlign(LEFT, TOP);
   textStyle(BOLD);
   textLayer.push();
-  textLayer.translate(10, 300);
+  textLayer.translate(10, 340);
   textLayer.textSize(5 * pixelMultiplier);
   let topMargin = 8 * pixelMultiplier;
   let leftMargin = 0 * pixelMultiplier;
