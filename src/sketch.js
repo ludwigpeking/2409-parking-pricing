@@ -53,7 +53,7 @@ function setup() {
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
           // a13Values(); // for A13 specific
-          a6Values();
+          projectData(panjin);
         });
       }
     });
@@ -481,10 +481,13 @@ function determineCellProps(color) {
     whitePoint: false, // open space
     bluePoint: false, // parking (<200,<200,255) basic blue indicator
     regularColorPoint: false, // regular parking
+    advantagedColorPoint: false, // advantaged parking
     miniColorPoint: false, // mini parking
     doubleColorPoint: false, // double parking
     narrowColorPoint: false, // narrow parking,
     deadEndPoint: false, // dead end
+    disadvantagedColorPoint: false, // disadvantage parking
+    housedColorPoint: false, // housed parking
     redPoint: false, // core
     yellowPoint: false, // detached core
     greenPoint: false, // transfer
@@ -498,10 +501,10 @@ function determineCellProps(color) {
     baseProps.color = [0, 0, 0]; //black walls
   }
 
-  if (r > 200 && g > 200 && b > 200 && r < 255 && g < 255 && b < 255) {
+  if (r > 200 && g > 200 && b > 200) {
     baseProps.walkable = true; //no use
     baseProps.whitePoint = true;
-    baseProps.color = [255, 255, 255]; //white, open space
+    // baseProps.color = [255, 255, 255]; //white, open space
   }
 
   // Red
@@ -529,35 +532,50 @@ function determineCellProps(color) {
   }
 
   //blue
+  //the blue color space carry many layers of meanings
+  //R: 0-255, G: 0-199; B: 201-255
   if (g < 200 && b > 200) {
     baseProps.bluePoint = true;
     baseProps.color[0] = 0;
     baseProps.color[2] = 255;
     if (g < 50) {
-      baseProps.regularColorPoint = true; //[<200,<50,255]
+      baseProps.regularColorPoint = true; //[0,0,255]
       baseProps.color[1] = 0;
     }
     if (g >= 50 && g < 125) {
-      baseProps.miniColorPoint = true; //[<200,80,255]
+      baseProps.miniColorPoint = true; //[R,80,255], since small parking is detected by the length, this is not used, only for visual legibility
       baseProps.color[1] = 80;
     }
-    if (g >= 125) {
-      baseProps.doubleColorPoint = true; //[<200,160,255]
+    if (g >= 125 && g < 170) {
+      baseProps.doubleColorPoint = true; //[R,160,255], since double parking is detected by the length, this is not used, only for visual legibility
       baseProps.color[1] = 160;
     }
-  }
+    if (g >= 170) {
+      baseProps.housedColorPoint = true; //[100,199,255]
+      baseProps.color[0] = 100;
+      baseProps.color[1] = 199;
+    }
+    if (r > 80 && r < 120) {
+      baseProps.advantagedColorPoint = true; //[100, G, 255]
+      baseProps.color[0] = 100;
+    }
+    if (r > 200 && r < 250) {
+      baseProps.disadvantagedColorPoint = true; //[200,G,255]
+      baseProps.color[0] = 200;
+    }
 
-  // Narrow Parking: Check first because it can overlap with others
-  if (r > 100 && r < 200 && g < 200 && b > 200) {
-    baseProps.narrowColorPoint = true; //[150, 0-200, 255]
-    baseProps.color[0] = 150;
+    if (r > 100 && r < 200) {
+      baseProps.narrowColorPoint = true; //[150, G, 255]
+      baseProps.color[0] = 150;
+    }
+    if (r >= 250) {
+      baseProps.deadEndPoint = true; //[255,G,255]
+      baseProps.color[0] = 255;
+    }
   }
-  if (r > 200 && g < 200 && b > 200) {
-    baseProps.deadEndPoint = true;
-    baseProps.color[0] = 255;
-  }
-
   return baseProps;
+  // Narrow Parking: Check first because it can overlap with others
+  // large and vip lot [100,G,255], disadvantage lot [200,G,255]
 }
 
 function findCluster(grid, tile, cluster, color) {

@@ -237,9 +237,12 @@ function drawLegend() {
   legend.text("微型车位", 60, 140);
   legend.text("难操作车位", 60, 170);
   legend.text("尽端车位", 60, 200);
+  legend.text("优越车位", 60, 230);
+  legend.text("问题车位", 60, 260);
+  legend.text("独立车库", 60, 290);
 
-  legend.text("高价格", 60, 240);
-  legend.text("低价格", 60, 330);
+  legend.text("高价格", 60, 330);
+  legend.text("低价格", 60, 400);
 
   legend.fill(0, 0, 255); //常规车位 regular
   legend.rect(30, 70, 20, 20);
@@ -252,12 +255,18 @@ function drawLegend() {
   legend.rect(30, 160, 20, 20);
   legend.fill(255, 0, 255); //尽端车位 end
   legend.rect(30, 190, 20, 20);
+  legend.fill(100, 0, 255); //优越车位 green
+  legend.rect(30, 220, 20, 20);
+  legend.fill(200, 0, 255); //问题车位 red
+  legend.rect(30, 250, 20, 20);
+  legend.fill(100, 199, 255); //独立车库 yellow
+  legend.rect(30, 280, 20, 20);
 
   const lowestColor = color(50, 0, 0);
   const highestColor = color(255, 0, 0);
-  for (let y = 230; y < 330; y++) {
+  for (let y = 330; y < 400; y++) {
     // Interpolate between colorA and colorB
-    let inter = map(y, 230, 330, 0, 1);
+    let inter = map(y, 330, 400, 0, 1);
     let c = lerpColor(highestColor, lowestColor, inter);
     legend.stroke(c);
     legend.line(30, y, 50, y);

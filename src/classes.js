@@ -3,12 +3,15 @@ let customersUsed = [];
 let customersLeft = [];
 let salesControlActive = false;
 let customerLotChoices = []; // This will store customer-lot pairings for each round
-let occupancyRate = 0.85;
+
 let customersTotalIncome = 0;
 // const remoteLotDist = 400; // in meters, Not in use
 // const baselineIncome = 60000; //CNY for surviving level
 // const baselineIncome = 115000; //jinan a13 adjusted value
-const baselineIncome = 120000; //jinan a6 adjusted value
+const project = panjin;
+let occupancyRate = project.occupancyRate;
+const baselineIncome = project.baselineIncome; //jinan a6 adjusted value
+const exponentBase = project.exponentBase || 1.4;
 const guessHigh = 700000;
 let householdNumberWithDeal;
 let totalHouseholdNumber;
@@ -30,7 +33,7 @@ class Customer {
   constructor(core, level = 0) {
     // this.meanIncome = 1.8 ** level * baselineIncome;
     // this.meanIncome = 1.4 ** level * baselineIncome; //jinan a13 adjusted value
-    this.meanIncome = 1.5 ** level * baselineIncome; //jinan a6 adjusted value
+    this.meanIncome = exponentBase ** level * baselineIncome; //jinan a6 adjusted value
 
     this.income = normalRandom(this.meanIncome, 0.15 * this.meanIncome);
     //jinan a13 adjusted value
@@ -761,7 +764,8 @@ function drawParkingLotsAndPrices() {
   });
 
   // a13DrawStartsNumber(basement1.textLayer);
-  a6DrawStartsNumber(basement1.textLayer);
+  DrawStartsNumber(basement1.textLayer, panjin);
+  // a6DrawStartsNumber(basement1.textLayer);
   // After drawing, make sure to render these layers in the main draw loop to see the changes
 
   // save all the lots, save the x, y, price, basement of each lot as a csv file
