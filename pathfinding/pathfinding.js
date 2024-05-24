@@ -33,7 +33,7 @@ function initializePathfindingNodes(basement) {
       }))
       .filter((item) => item.node !== node) // Exclude self
       .sort((a, b) => a.distance - b.distance) // Sort by distance
-      .slice(0, 15); // Get the closest 15 nodes NOTE!!!!!
+      .slice(0, 20); // Get the closest 15 nodes NOTE!!!!!
 
     // Validate and refine distances considering walls
     distances.forEach((distance) => {
@@ -47,7 +47,7 @@ function initializePathfindingNodes(basement) {
   });
 }
 
-function aStarSearch(start, goal, graph) {
+function aStarSearch(start, goal, graph, img) {
   // console.log("A* Search Start");
   if (!start || !goal) {
     console.error("Start or goal node is undefined.");
@@ -118,6 +118,17 @@ function aStarSearch(start, goal, graph) {
   }
 
   console.error("Failed to find a path.");
+  img.stroke(255, 0, 0);
+  img.strokeWeight(2);
+  img.line(
+    start.x * pixelMultiplier,
+    start.y * pixelMultiplier,
+    goal.x * pixelMultiplier,
+    goal.y * pixelMultiplier
+  );
+  // stroke(255, 0, 0);
+  // strokeWeight(2);
+  // line(start.x, start.y, goal.x, goal.y);
   return "Failure to find path";
 }
 

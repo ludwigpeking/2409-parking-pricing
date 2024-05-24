@@ -24,7 +24,7 @@ const listOfCustomers = [
 
 function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
-  let canvas = createCanvas(2000 * pixelMultiplier, 700 * pixelMultiplier); // Start with a default size
+  let canvas = createCanvas(2000 * pixelMultiplier, 800 * pixelMultiplier); // Start with a default size
 
   canvas.parent("canvasContainer");
   background(220); // Set a default background
@@ -52,7 +52,8 @@ function setup() {
 
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
-          a13Values(); // for A13 specific
+          // a13Values(); // for A13 specific
+          a6Values();
         });
       }
     });
@@ -68,7 +69,6 @@ function setup() {
           processImage(basement2, basement2.inputImage);
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
-          a13Values(); // for A13 specific
         });
       }
     });
@@ -139,6 +139,7 @@ function draw() {
 }
 
 function processImage(basement, inputImage) {
+  //
   console.log("processImage", "basement", basement.floor, inputImage);
   basement.grid = makeGrid(basement, inputImage);
   if (basement.floor === 2) {
@@ -209,7 +210,7 @@ function processImage(basement, inputImage) {
     endPoint.horizontal = findClusterSize(cluster).horizontal; //horizontal or not is for parking lot
     endPoint.angle = findClusterSize(cluster).angle;
     endPoint.xSize = findClusterSize(cluster).xSize;
-    if (endPoint.xSize < 8) {
+    if (endPoint.xSize < 6) {
       endPoint.small = true;
     }
     if (endPoint.xSize > 13) {
@@ -254,7 +255,7 @@ function processImage(basement, inputImage) {
       const end = basement.ends[j];
       // const dist = manhattanDistance(start, end);
       // console.log("start astar", i, j, start, end, basement.graph);
-      const dist = aStarSearch(start, end, basement.graph);
+      const dist = aStarSearch(start, end, basement.graph, basement.img);
       // console.log("dist = ", dist, ", exit astar");
       start.dists.push(dist);
     }
@@ -274,7 +275,7 @@ function processImage(basement, inputImage) {
     const transfer = basement.transfers[i];
     for (let j = 0; j < basement.ends.length; j++) {
       const end = basement.ends[j];
-      const dist = aStarSearch(transfer, end, basement.graph);
+      const dist = aStarSearch(transfer, end, basement.graph, basement.img);
       transfer.dists.push(dist);
     }
   }
@@ -300,6 +301,13 @@ function processImage(basement, inputImage) {
     const detachedStart = basement.detachedStarts[i];
     basement.starts.push(detachedStart);
   }
+  //re-order the starts by x position, if they have same x position, order them by y position
+  basement.starts.sort((a, b) => {
+    if (a.x === b.x) {
+      return a.y - b.y;
+    }
+    return a.x - b.x;
+  });
   //calculate all manhattan dists from all starts to all exits, and push them to a new distsToExits array
   for (let i = 0; i < basement.starts.length; i++) {
     const start = basement.starts[i];

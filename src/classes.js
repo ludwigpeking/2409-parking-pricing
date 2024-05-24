@@ -7,7 +7,8 @@ let occupancyRate = 0.85;
 let customersTotalIncome = 0;
 // const remoteLotDist = 400; // in meters, Not in use
 // const baselineIncome = 60000; //CNY for surviving level
-const baselineIncome = 115000;
+// const baselineIncome = 115000; //jinan a13 adjusted value
+const baselineIncome = 120000; //jinan a6 adjusted value
 const guessHigh = 700000;
 let householdNumberWithDeal;
 let totalHouseholdNumber;
@@ -28,7 +29,9 @@ const basement2RampMetersLoss = 50;
 class Customer {
   constructor(core, level = 0) {
     // this.meanIncome = 1.8 ** level * baselineIncome;
-    this.meanIncome = 1.4 ** level * baselineIncome;
+    // this.meanIncome = 1.4 ** level * baselineIncome; //jinan a13 adjusted value
+    this.meanIncome = 1.5 ** level * baselineIncome; //jinan a6 adjusted value
+
     this.income = normalRandom(this.meanIncome, 0.15 * this.meanIncome);
     //jinan a13 adjusted value
     this.carOwnership =
@@ -757,6 +760,42 @@ function drawParkingLotsAndPrices() {
     targetLayer.rect(x, y + 8, 2 * pixelMultiplier, 2 * pixelMultiplier);
   });
 
-  a13DrawStartsNumber(basement1.textLayer);
+  // a13DrawStartsNumber(basement1.textLayer);
+  a6DrawStartsNumber(basement1.textLayer);
   // After drawing, make sure to render these layers in the main draw loop to see the changes
+
+  // save all the lots, save the x, y, price, basement of each lot as a csv file
+  function arrayToCSV(data) {
+    const csvRows = [];
+    const headers = ["x", "y", "price", "basement"];
+    csvRows.push(headers.join(","));
+
+    data.forEach((lot) => {
+      const row = [lot.x, lot.y, lot.price, lot.basement];
+      csvRows.push(row.join(","));
+    });
+
+    return csvRows.join("\n");
+  }
+
+  // Function to trigger download of CSV file
+  function downloadCSV(csvData) {
+    const blob = new Blob([csvData], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.setAttribute("href", url);
+    a.setAttribute("download", "parking_lot_data.csv");
+    a.click();
+  }
+
+  // Collect lot data and download as CSV
+  const lotData = combinedEnds.map((lot, i) => ({
+    x: lot.x * 500,
+    y: lot.y * 500,
+    price: prices[maxSalesIndex][i],
+    basement: lot.basement,
+  }));
+
+  const csvData = arrayToCSV(lotData);
+  downloadCSV(csvData);
 }
