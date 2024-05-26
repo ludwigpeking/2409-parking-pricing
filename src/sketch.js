@@ -3,8 +3,7 @@ let basement2 = new Basement(2);
 
 let pixelMultiplier = 4;
 //mouse events
-let x1, y1, x2, y2;
-let legend;
+let x1, y1, x2, y2; //mouse positions
 let selection = false;
 let confirmed = false;
 let zoom = 1;
@@ -13,6 +12,8 @@ let offsetY = 0;
 let startDragX = 0;
 let startDragY = 0;
 let dragging = false;
+//legend graphics
+let legend;
 
 const listOfCustomers = [
   "刚需 surviving",
@@ -26,7 +27,7 @@ function setup() {
   // Create a canvas and attach it to the 'canvasContainer' div
   let canvas = createCanvas(2000 * pixelMultiplier, 800 * pixelMultiplier); // Start with a default size
 
-  canvas.parent("canvasContainer");
+  canvas.parent("canvasContainer"); //this is to get the canvas position
   background(220); // Set a default background
   legend = drawLegend();
   // cursor("zoom-in");
@@ -49,7 +50,6 @@ function setup() {
         loadImage(URL.createObjectURL(file), function (loadedImg) {
           basement1.inputImage = loadedImg;
           processImage(basement1, basement1.inputImage);
-
           combineEnds(basement1, basement2);
           mergeCommonStarts(basement1, basement2);
           // a13Values(); // for A13 specific

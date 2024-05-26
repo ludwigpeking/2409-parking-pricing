@@ -1,4 +1,5 @@
 const distanceScale = 0.5; // 0.5 meters per pixel
+const nodeSearchSize = project.nodeSearchSize; // Number of closest nodes to consider for pathfinding
 // Assuming processImage already populates starts, ends, and possibly walls
 
 // Utility function to calculate Manhattan distance
@@ -33,7 +34,7 @@ function initializePathfindingNodes(basement) {
       }))
       .filter((item) => item.node !== node) // Exclude self
       .sort((a, b) => a.distance - b.distance) // Sort by distance
-      .slice(0, 20); // Get the closest 15 nodes NOTE!!!!!
+      .slice(0, nodeSearchSize); // Get the closest 15 nodes NOTE!!!!!
 
     // Validate and refine distances considering walls
     distances.forEach((distance) => {

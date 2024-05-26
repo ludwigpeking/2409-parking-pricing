@@ -98,7 +98,7 @@ function normalRandom(mean, stdDev = mean * 0.2) {
   while (v === 0) v = Math.random();
   let rand = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 
-  return Math.round(rand * stdDev + mean);
+  return rand * stdDev + mean;
 }
 
 function drawCustomerLotLines(maxSalesIndex) {
@@ -179,7 +179,9 @@ function drawGraph(basement) {
     console.log("Graph not initialized.");
     return;
   }
-
+  if (basement.floor === 2) {
+    translate(basement1.img.width, 0);
+  }
   // Draw each node and edges
   Object.values(basement.graph).forEach((nodeEntry) => {
     const node = nodeEntry.node;
@@ -189,9 +191,20 @@ function drawGraph(basement) {
     // Draw edges
     nodeEntry.edges.forEach((edge) => {
       const toNode = edge.to;
+
       noFill();
-      stroke(0, 255, 0, 150); // Green color for edges
-      strokeWeight(0.2);
+      stroke(0, 255, 0); // Green color for edges
+      strokeWeight(0.5);
+      circle(
+        node.x * pixelMultiplier,
+        node.y * pixelMultiplier,
+        pixelMultiplier * 2
+      );
+      circle(
+        toNode.x * pixelMultiplier,
+        toNode.y * pixelMultiplier,
+        pixelMultiplier * 2
+      );
       line(
         node.x * pixelMultiplier,
         node.y * pixelMultiplier,
@@ -280,7 +293,7 @@ function printOutput(textLayer) {
   textLayer.textAlign(LEFT, TOP);
   textStyle(BOLD);
   textLayer.push();
-  textLayer.translate(10, 340);
+  textLayer.translate(10, 400);
   textLayer.textSize(5 * pixelMultiplier);
   let topMargin = 8 * pixelMultiplier;
   let leftMargin = 0 * pixelMultiplier;

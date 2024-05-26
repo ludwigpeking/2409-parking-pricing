@@ -28,6 +28,10 @@ function projectData(projectName) {
     basement1.coreClasses[i] = basement1.info[i].coreClass;
     basement1.coreHouseholdNumbers[i] = basement1.info[i].coreHouseholdNumber;
   }
+  for (let i = 0; i < basement1.exits.length; i++) {
+    basement1.exitClasses[i] = basement1.info.exitClasses[i];
+    basement1.exits[i].metersLoss = 80 * 5 * (1 + basement1.exitClasses[i]);
+  }
 }
 
 //盘锦 人均可支配收入49000，约等于天津、济南、南通，高于合肥、沈阳； 低于武汉、青岛
@@ -52,8 +56,13 @@ function projectData(projectName) {
 const panjin = {
   occupancyRate: 0.85,
   baselineIncome: 80000,
+  basement2RampMetersLoss: 20,
   exponentBase: 1.5,
+  nodeSearchSize: 10, //related to the graph
+  timeValueFactor: 0.5,
   classes: ["刚需 ", "首置 ", "125 ", "140 ", "165 "],
+  incomeDeviation: 0.2,
+  exitClasses: [2, 2, 2, 2],
   0: {
     coreClass: 2,
     coreHouseholdNumber: 36,

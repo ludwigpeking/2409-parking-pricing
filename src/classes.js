@@ -9,10 +9,12 @@ let customersTotalIncome = 0;
 // const baselineIncome = 60000; //CNY for surviving level
 // const baselineIncome = 115000; //jinan a13 adjusted value
 const project = panjin;
-let occupancyRate = project.occupancyRate;
+let occupancyRate = project.occupancyRate || 0.85;
 const baselineIncome = project.baselineIncome; //jinan a6 adjusted value
 const exponentBase = project.exponentBase || 1.4;
 const guessHigh = 700000;
+const incomeDeviation = project.incomeDeviation || 0.15;
+const timeValueFactor = project.timeValueFactor || 1;
 let householdNumberWithDeal;
 let totalHouseholdNumber;
 let prices = []; // prices of each round
@@ -27,7 +29,7 @@ let commonStarts = [];
 let combinedEnds = [];
 let openLots = [];
 let soldLots = [];
-const basement2RampMetersLoss = 50;
+const basement2RampMetersLoss = project.basement2RampMetersLoss || 50;
 
 class Customer {
   constructor(core, level = 0) {
@@ -35,8 +37,12 @@ class Customer {
     // this.meanIncome = 1.4 ** level * baselineIncome; //jinan a13 adjusted value
     this.meanIncome = exponentBase ** level * baselineIncome; //jinan a6 adjusted value
 
-    this.income = normalRandom(this.meanIncome, 0.15 * this.meanIncome);
+    this.income = normalRandom(
+      this.meanIncome,
+      incomeDeviation * this.meanIncome
+    );
     //jinan a13 adjusted value
+    ///////////// TODO: the carOwnership needs some tuning perhapse ////////////////////
     this.carOwnership =
       0.075 /
       ((1.35 ** (log(this.income / baselineIncome) / log(2)) * 12000) /
@@ -55,33 +61,32 @@ class Customer {
       }
     }
     //two car
-
-    if (this.carOwnership > 1 + random() * 1.1 - 0.2) {
+    if (this.carOwnership > 1 + random() * 1.2 - 0.1) {
       this.twoCars = true;
       this.doubleAcceptance = false;
       //second car is a mini car
       if (this.carOwnership < random() + 0.52) {
         this.secondCarMini = true;
       }
-      // this.secondCarUsage = max(
-      //   this.carOwnership / 2 + 0.2 - random() * 0.4,
-      //   0
-      // );
-      this.secondCarUsage = 0.78;
+      this.secondCarUsage = max(min(normalRandom(1, 0.5), 1), 0);
+      // this.secondCarUsage = 0.78;
       // console.log("second car usage: ", this.secondCarUsage);
     }
     //the customer can accept a double lot
-    if (this.secondCarUsage > random() + 0.5) {
+    if (this.secondCarUsage < random()) {
       this.doubleAcceptance = true;
+      console.log("double acceptance", this.secondCarUsage);
     }
 
     this.core = core;
     this.dists = this.core.dists;
     this.lotsLoss = [];
-    this.meterValue = (this.income / 120000 / 80) * 600 * 12 * 0.85;
+    this.meterValue = (this.income / 120000 / 80) * 600 * 12 * timeValueFactor;
     this.lotsLossDouble = new Array(combinedEnds.length).fill(Infinity);
     if (this.twoCars) {
       this.meterValueSecond = (this.meterValue * (1 + this.secondCarUsage)) / 2;
+      // this.meterValueSecond = this.meterValue * this.secondCarUsage;
+
       this.lotsLossSecond = [];
       if (this.doubleAcceptance) {
         this.meterValueDouble = this.meterValue + this.meterValueSecond;
@@ -89,6 +94,14 @@ class Customer {
       }
     }
     //iterate through all the parking lots
+    // regularColorPoint: false, // regular parking
+    // advantagedColorPoint: false, // advantaged parking
+    // miniColorPoint: false, // mini parking
+    // doubleColorPoint: false, // double parking
+    // narrowColorPoint: false, // narrow parking,
+    // deadEndPoint: false, // dead end
+    // disadvantagedColorPoint: false, // disadvantage parking
+    // housedColorPoint: false, // housed parking
     for (let i = 0; i < combinedEnds.length; i++) {
       //first car loss
       this.lotsLoss[i] =
@@ -96,18 +109,25 @@ class Customer {
           basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
         this.meterValue; //B2 penalty
       if (this.dists[i] < 16) this.lotsLoss[i] -= 30 * this.meterValue;
-      if (this.dists[i] < 8) this.lotsLoss[i] -= 50 * this.meterValue;
+      if (this.dists[i] < 8) this.lotsLoss[i] -= 30 * this.meterValue;
+      if (combinedEnds[i].advantagedColorPoint)
+        this.lotsLoss[i] -= 80 * this.meterValue; //advantaged parking
       if (combinedEnds[i].small) {
         this.lotsLoss[i] += 400 * this.meterValue;
       }
       if (combinedEnds[i].small && this.firstCarMini) {
         this.lotsLoss[i] -= 300 * this.meterValue;
       }
-
       if (combinedEnds[i].narrowColorPoint) {
         this.lotsLoss[i] += 30 * this.meterValue;
       }
-
+      if (combinedEnds[i].disadvantagedColorPoint) {
+        this.lotsLoss[i] += 110 * this.meterValue;
+      }
+      if (combinedEnds[i].housedColorPoint) {
+        // housed parking can be used for storage
+        this.lotsLoss[i] -= 550 * this.meterValue;
+      }
       if (combinedEnds[i].deadEndPoint) {
         this.lotsLoss[i] += 70 * this.meterValue;
         if (combinedEnds[i].small) {
@@ -124,13 +144,20 @@ class Customer {
         if (this.dists[i] < 16)
           this.lotsLossSecond[i] -= 30 * this.meterValueSecond;
         if (this.dists[i] < 8)
-          this.lotsLossSecond[i] -= 50 * this.meterValueSecond;
+          this.lotsLossSecond[i] -= 30 * this.meterValueSecond;
+        if (combinedEnds[i].advantagedColorPoint) {
+          this.lotsLossSecond[i] -= 80 * this.meterValueSecond;
+        }
         if (combinedEnds[i].small)
           this.lotsLossSecond[i] += 400 * this.meterValueSecond;
         if (this.secondCarMini && combinedEnds[i].small)
           this.lotsLossSecond[i] -= 300 * this.meterValueSecond;
         if (combinedEnds[i].narrowColorPoint)
           this.lotsLossSecond[i] += 30 * this.meterValueSecond;
+        if (combinedEnds[i].disadvantagedColorPoint)
+          this.lotsLossSecond[i] += 110 * this.meterValueSecond;
+        if (combinedEnds[i].housedColorPoint)
+          this.lotsLossSecond[i] -= 550 * this.meterValueSecond;
         if (combinedEnds[i].deadEndPoint) {
           this.lotsLossSecond[i] += 70 * this.meterValueSecond;
           if (combinedEnds[i].small)
@@ -146,12 +173,19 @@ class Customer {
               basement2RampMetersLoss * (combinedEnds[i].basement - 1)) *
               this.meterValueDouble +
             150 * this.meterValueDouble;
-          if (this.dists[i] < 10)
+          if (this.dists[i] < 16)
             this.lotsLossDouble[i] -= 30 * this.meterValueDouble;
-          if (this.dists[i] < 5)
-            this.lotsLossDouble[i] -= 50 * this.meterValueDouble;
+          if (this.dists[i] < 8)
+            this.lotsLossDouble[i] -= 30 * this.meterValueDouble;
+          if (combinedEnds[i].advantagedColorPoint)
+            this.lotsLossDouble[i] -= 80 * this.meterValueDouble;
+
           if (combinedEnds[i].narrowColorPoint)
             this.lotsLossDouble[i] += 30 * this.meterValueDouble;
+          if (combinedEnds[i].disadvantagedColorPoint)
+            this.lotsLossDouble[i] += 110 * this.meterValueDouble;
+          if (combinedEnds[i].housedColorPoint)
+            this.lotsLossDouble[i] -= 550 * this.meterValueDouble;
           if (combinedEnds[i].deadEndPoint) {
             this.lotsLossDouble[i] += 70 * this.meterValueDouble;
             if (combinedEnds[i].small)
@@ -731,32 +765,21 @@ function drawParkingLotsAndPrices() {
     targetLayer.text(round(prices[maxSalesIndex][i] / 10000, 1), x, y);
     targetLayer.noStroke();
 
-    if (lot.small) {
-      // targetLayer.strokeWeight(2);
-      targetLayer.fill(80, 80, 255);
-
-      // targetLayer.stroke(0, 80, 255);
-    }
-    if (lot.double) {
-      // targetLayer.strokeWeight(2);
-      targetLayer.fill(0, 160, 255);
-      // targetLayer.stroke(0, 160, 255);
-    }
-    if (lot.narrowColorPoint) {
-      // targetLayer.strokeWeight(2);
-      targetLayer.fill(160, 0, 255);
-      // targetLayer.stroke(160, 0, 255);
-    }
-    if (lot.deadEndPoint) {
-      // targetLayer.strokeWeight(2);
-      targetLayer.fill(255, 0, 255);
-      // targetLayer.stroke(255, 0, 0);
-    }
+    if (lot.small) targetLayer.fill(80, 80, 255);
+    if (lot.double) targetLayer.fill(0, 160, 255);
+    if (lot.narrowColorPoint) targetLayer.fill(160, 0, 255);
+    if (lot.deadEndPoint) targetLayer.fill(255, 0, 255);
+    if (lot.advantagedColorPoint) targetLayer.fill(100, 0, 255);
+    if (lot.disadvantagedColorPoint) targetLayer.fill(200, 0, 255);
+    if (lot.housedColorPoint) targetLayer.fill(100, 199, 255);
     if (
       !lot.small &&
       !lot.narrowColorPoint &&
-      !lot.narrowColorPoint &&
-      !lot.deadEndPoint
+      !lot.deadEndPoint &&
+      !lot.advantagedColorPoint &&
+      !lot.disadvantagedColorPoint &&
+      !lot.housedColorPoint &&
+      !lot.double
     ) {
       targetLayer.fill(0, 0, 255);
     }
