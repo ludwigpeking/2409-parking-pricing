@@ -11,7 +11,12 @@ function manhattanDistance(node1, node2) {
 // Initialize pathfinding nodes and graph
 function initializePathfindingNodes(basement) {
   // Combine all relevant points into a single array for processing
-  const nodes = [...basement.starts, ...basement.ends, ...basement.transfers];
+  const nodes = [
+    ...basement.starts,
+    ...basement.ends,
+    ...basement.transfers,
+    ...basement.walkNodes,
+  ];
   nodes.forEach((node, index) => {
     if (!node.id) {
       node.id = `node-${index}`; // Assign a unique ID if none exists

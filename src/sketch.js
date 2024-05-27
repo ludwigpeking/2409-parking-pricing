@@ -134,8 +134,10 @@ function draw() {
 
   image(legend, 0, 0);
   //// to check graph nodes
-  // if (basement1.graph) drawGraph(basement1);
-  // if (basement2.graph) drawGraph(basement2);
+  if (drawWalkNodesBool) {
+    if (basement1.graph) drawGraph(basement1);
+    if (basement2.graph) drawGraph(basement2);
+  }
 }
 
 function processImage(basement, inputImage) {
@@ -145,7 +147,12 @@ function processImage(basement, inputImage) {
   if (basement.floor === 2) {
     basement.translate.x = basement1.inputImage.width;
   }
-
+  basement.clustersBlue = [];
+  basement.clustersRed = [];
+  basement.clustersYellow = [];
+  basement.clustersGreen = [];
+  basement.clustersCyan = [];
+  basement.clustersOrange = [];
   const pointTypes = [
     {
       color: "bluePoint",
@@ -171,6 +178,11 @@ function processImage(basement, inputImage) {
       color: "cyanPoint",
       clusterArray: basement.clustersCyan,
       propertySetter: (point) => (point.exit = true),
+    },
+    {
+      color: "orangePoint",
+      clusterArray: basement.clustersOrange,
+      propertySetter: (point) => (point.walkNode = true),
     },
   ];
   for (let i = 0; i < basement.grid.length; i++) {
@@ -201,6 +213,7 @@ function processImage(basement, inputImage) {
   basement.detachedStarts = [];
   basement.transfers = [];
   basement.exits = [];
+  basement.walkNodes = [];
   //TODO: classify the ends into normal parking lots (0,0,255), mini parking lots (50,0,255), double parking lots(0,50,255),
   for (let i = 0; i < basement.clustersBlue.length; i++) {
     const cluster = basement.clustersBlue[i];
@@ -245,6 +258,12 @@ function processImage(basement, inputImage) {
     basement.clustersCyan,
     basement.exits,
     (point) => (point.exit = true)
+  );
+  processClusters(
+    basement,
+    basement.clustersOrange,
+    basement.walkNodes,
+    (point) => (point.walkNode = true)
   );
 
   initializePathfindingNodes(basement);
@@ -470,7 +489,6 @@ function makeGrid(basement, inputImage) {
       );
     }
   }
-
   basement.img = offscreen;
   return basement.grid;
 }
@@ -492,6 +510,7 @@ function determineCellProps(color) {
     yellowPoint: false, // detached core
     greenPoint: false, // transfer
     cyanPoint: false, // exit
+    orangePoint: false, // walk node
     color: [150, 150, 150], // Default color (grey)
   };
 
@@ -529,6 +548,12 @@ function determineCellProps(color) {
   if (r < 50 && g > 200 && b > 200) {
     baseProps.cyanPoint = true; //[0,255,255]
     baseProps.color = [0, 255, 255];
+  }
+
+  // Orange
+  if (r > 200 && g > 120 && g < 180 && b < 50) {
+    baseProps.orangePoint = true; //[255,150,0]
+    baseProps.color = [255, 150, 0];
   }
 
   //blue
@@ -641,78 +666,6 @@ function findClusterSize(cluster) {
     angle: angle, // Convert radians to degrees
   };
 }
-
-//draw all the doms' value on the textLayer at the doms' position
-
-function startSelection() {
-  selection = true;
-  confirmed = false;
-}
-
-function confirmSelection() {
-  if (selection) {
-    confirmed = true;
-    selection = false;
-  }
-}
-
-function confirmControlledLots() {
-  confirmed = true;
-  selection = false;
-  salesControlActive = true;
-}
-
-function salesControl() {
-  console.log("salesControl");
-  selection = true;
-  confirmed = false;
-}
-
-function pushControlledLots() {
-  let pushed = 0;
-  for (let i = 0; i < openLots.length; i++) {
-    const end = openLots[i];
-    if (
-      end.x * pixelMultiplier > x1 &&
-      end.x * pixelMultiplier < x2 &&
-      end.y * pixelMultiplier > y1 &&
-      end.y * pixelMultiplier < y2
-    ) {
-      end.controlled = true;
-      //move end to controlledLots Array and remove it from ends Array
-      controlledLots.push(end);
-      removeFromArray(openLots, end);
-      pushed++;
-      //draw the pushed lots in light grey
-      fill(220);
-      noStroke();
-      rectMode(CENTER);
-      rect(
-        end.x * pixelMultiplier,
-        end.y * pixelMultiplier,
-        end.horizontal * 2.5 * pixelMultiplier + 2.5 * pixelMultiplier,
-        -end.horizontal * 2.5 * pixelMultiplier + 5 * pixelMultiplier
-      );
-    }
-  }
-  console.log(pushed, "pushed: ");
-}
-
-function resetSalesControl() {
-  salesControlActive = false;
-  customersLeft = customers.slice();
-  customersUsed = [];
-  openLots = ends.slice();
-  //put controlledLots back to ends
-  for (let i = 0; i < controlledLots.length; i++) {
-    const controlledLot = controlledLots[i];
-    openLots.push(controlledLot);
-  }
-  controlledLots = [];
-  image(img, 0, 0);
-}
-
-function openControlledLots() {}
 
 function processClusters(basement, clusters, targetArray, propertySetter) {
   for (let i = 0; i < clusters.length; i++) {

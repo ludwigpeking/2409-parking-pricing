@@ -73,7 +73,7 @@ class Customer {
       // console.log("second car usage: ", this.secondCarUsage);
     }
     //the customer can accept a double lot
-    if (this.secondCarUsage < random()) {
+    if (this.secondCarUsage < random() + 0.2) {
       this.doubleAcceptance = true;
       console.log("double acceptance", this.secondCarUsage);
     }
@@ -93,15 +93,7 @@ class Customer {
         //should only target the double lots
       }
     }
-    //iterate through all the parking lots
-    // regularColorPoint: false, // regular parking
-    // advantagedColorPoint: false, // advantaged parking
-    // miniColorPoint: false, // mini parking
-    // doubleColorPoint: false, // double parking
-    // narrowColorPoint: false, // narrow parking,
-    // deadEndPoint: false, // dead end
-    // disadvantagedColorPoint: false, // disadvantage parking
-    // housedColorPoint: false, // housed parking
+
     for (let i = 0; i < combinedEnds.length; i++) {
       //first car loss
       this.lotsLoss[i] =

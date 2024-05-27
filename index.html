@@ -90,6 +90,12 @@ Contacts List
           id="drawLinesCheckbox"
           name="drawLinesCheckbox"
         />
+        <label for="drawWalkNodesCheckbox">显示步行节点</label>
+        <input
+          type="checkbox"
+          id="drawWalkNodesCheckbox"
+          name="drawWalkNodesCheckbox"
+        />
       </div>
       <div>
         <button id="saveButton">Save State</button>
@@ -173,6 +179,17 @@ Contacts List
           console.log("Draw customer lot lines:", drawCustomerLotLineBool); // For debugging
         });
       });
+      let drawWalkNodesBool = false;
+      document.addEventListener("DOMContentLoaded", function () {
+        const drawWalkNodesCheckbox = document.getElementById(
+          "drawWalkNodesCheckbox"
+        );
+
+        drawWalkNodesCheckbox.addEventListener("change", function () {
+          drawWalkNodesBool = this.checked;
+          console.log("Draw walk nodes:", drawWalkNodesBool); // For debugging
+        });
+      });
     </script>
 
     <script src="./src/utils.js"></script>
@@ -181,6 +198,7 @@ Contacts List
     <script src="./src/classes.js"></script>
     <script src="./src/basement.js"></script>
     <script src="./pathfinding/pathfinding.js"></script>
+    <script src="./src/salesControl.js"></script>
     <!-- <script src="./src/a13.js"></script> -->
     <!-- <script src="./src/a6.js"></script> -->
     <script src="./src/sketch.js"></script>

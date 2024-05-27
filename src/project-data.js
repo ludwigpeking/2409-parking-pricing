@@ -58,8 +58,8 @@ const panjin = {
   baselineIncome: 80000,
   basement2RampMetersLoss: 20,
   exponentBase: 1.5,
-  nodeSearchSize: 10, //related to the graph
-  timeValueFactor: 0.5,
+  nodeSearchSize: 7, //related to the graph
+  timeValueFactor: 0.55,
   classes: ["刚需 ", "首置 ", "125 ", "140 ", "165 "],
   incomeDeviation: 0.2,
   exitClasses: [2, 2, 2, 2],
